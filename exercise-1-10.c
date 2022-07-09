@@ -18,6 +18,9 @@ int main(){
             putchar('\\');
             putchar('b');
         }
+        if(ch == ' '){
+            putchar('.');
+        }
         else
             putchar(ch);
     }

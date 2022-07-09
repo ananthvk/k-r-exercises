@@ -1,59 +1,32 @@
-#define MAX_LINE_LENGTH 501
+#define BUFFER_SIZE 82
+#define IN_LINE 1
+#define OUT_LINE 0
+// Buffer size is defined as 82 so that 80 characters and a new line can be stored along with
+// one null character at the end.
 
-// TODO: If the file is an empty file, the program prints some other chars
-// Rectify this issue.
-// Sample: 
-// Longest line:   0 characters
-// ♦☺ <---- These chars are printed instead of nothing.
-// The fix was to initialize the longest line array to 0, otherwise the printf
-// function used to keep printing until a null char was found.
 #include<stdio.h>
 #include<assert.h>
 #include<stddef.h>
+
 int kr_getline(char buffer[], int bufferSize);
 void kr_strncpy(char src[], char dest[], int destSize);
 
 int main(){
-    char buffer[MAX_LINE_LENGTH] = {0}, buffer2[MAX_LINE_LENGTH] = {0};
-    char longestLine[MAX_LINE_LENGTH] = {0};
-    int bufferLength, maxLength = 0, lineLength = 0;
-
-
-    while((bufferLength = kr_getline(buffer, MAX_LINE_LENGTH))){
-        // The last character of the buffer (excepting the null character), is
-        // not a newline, which means that the buffer is partial.
-        if((bufferLength == (MAX_LINE_LENGTH-1))
-            && (buffer[MAX_LINE_LENGTH - 2] != '\n')) {
-            if(lineLength == 0){
-                // This is the first section of the line.
-                kr_strncpy(buffer, buffer2, MAX_LINE_LENGTH);
-            }
-            lineLength += bufferLength;
+    int length;
+    char buffer[BUFFER_SIZE] = {0};
+    int state = OUT_LINE;
+    while((length = kr_getline(buffer, BUFFER_SIZE))){
+        if(length == (BUFFER_SIZE-1)){
+            if(buffer[length-1] != '\n')
+                state = IN_LINE;
+            printf("%s", buffer);
         }
-        // The buffer is partially filed and has a newline or it is completely
-        // filled with a newline at the end.
-        else{
-            if(lineLength > 0){
-                // This means that before this line, there are some incomplete 
-                // lines. So do  not overwrite the buffer.
-                lineLength += bufferLength;
-                if(lineLength > maxLength){
-                    maxLength = lineLength;
-                    kr_strncpy(buffer2, longestLine, MAX_LINE_LENGTH);
-                }
-                lineLength = 0;
-            }
-            else{
-                // There are no other incomplete lines before this line.
-                if(bufferLength > maxLength){
-                    maxLength = bufferLength;
-                    kr_strncpy(buffer, longestLine, MAX_LINE_LENGTH);
-                }
-            }
+        else if(state == IN_LINE){
+            state = OUT_LINE;
+            printf("%s", buffer);
         }
+        // printf("(%d)[%s]", length, buffer);
     }
-    printf("Longest line:%4d characters\n", maxLength);
-    printf("%s\n", longestLine);
 }
 
 void kr_strncpy(char src[], char dest[], int destSize){
@@ -80,6 +53,7 @@ void kr_strncpy(char src[], char dest[], int destSize){
 
 int kr_getline(char buffer[], int bufferSize){
     int ch, bufferIndex = 0, lineLength = 0;
+    // lineLength also counts the newline character(if any)
     while(1){
         ch = getchar();
 

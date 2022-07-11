@@ -4,10 +4,27 @@
 // used no dynamic memory allocation, it is not possible to reverse and print
 // if the line is split into multiple buffers.
 #include<stdio.h>
+// Arbitary max line length
+#define MAX_LINE_LENGTH 32768
+
 int getline(char buffer[], int bufferSize);
 
 int main(){
-
+    int length;
+    char buffer[MAX_LINE_LENGTH] = {'\0'};
+    while((length=getline(buffer, MAX_LINE_LENGTH))){
+        // getline() returns the size of the string
+        // For example: Hello
+        // Size: 7
+        // H e l l 0 \n \0
+        // 1 2 3 4 5  6  7
+        // So the program has to print backwards from index 5
+        // hence length - 2
+        for(int i = length-2; i >= 0; i--){
+            putchar(buffer[i]);
+        }
+        putchar('\n');
+    }
 }
 
 

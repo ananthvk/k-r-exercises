@@ -1,6 +1,14 @@
 /*
  * Program to replace tabs with multiple spaces.
  *
+ * TODO: Apparently this code is incorrect as it replaces any tab with tabstop number of spaces, but according to the question, tabstop is that of a typewriter and tab adds that many spaces to go to next tabstop. For example:
+ * Hello \tworld
+ *     |    |    |
+ *  Let the tabstops be 4 characters wide.
+ *  So it should get printed as 
+ *  Hello   world
+ *     |    |    |
+ *  (So two spaces are added in this example)
 */
 #include<stdio.h>
 #include<assert.h>
@@ -12,6 +20,7 @@ int getline(char buffer[], int bufferSize);
 
 int main(){
     char buffer[BUFFER_SIZE] = {'\0'};
+    // To be on the safer side, add few more extra spaces for null and other chars.
     char outputBuffer[(BUFFER_SIZE * 4) + 1] = {'\0'};
     while(getline(buffer, BUFFER_SIZE)){
         // detab(buffer);

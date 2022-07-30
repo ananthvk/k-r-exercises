@@ -1,7 +1,7 @@
 /*
  * Program to replace tabs with multiple spaces.
  *
- * TODO: Apparently this code is incorrect as it replaces any tab with tabstop number of spaces, but according to the question, tabstop is that of a typewriter and tab adds that many spaces to go to next tabstop. For example:
+ * TODO: Apparently this code is incorrect as it replaces any tab with tabstop number of spaces, but according to the question, tabstop was present in typewriters and a tab adds that many spaces to the text so that the text is aligned to a tabstop. For example:
  * Hello \tworld
  *     |    |    |
  *  Let the tabstops be 4 characters wide.
@@ -9,6 +9,7 @@
  *  Hello   world
  *     |    |    |
  *  (So two spaces are added in this example)
+ *  The program I have written is expanding tabs to spaces, like many editors.
 */
 #include<stdio.h>
 #include<assert.h>

@@ -29,12 +29,18 @@
  *          Set used_space = 0
  *      Else
  *          Find the index of the last space, tab or hyphen (break character) from then end.
- *          Print the buffer till the last break character (excluding the break character).
- *          Print a newline
- *          Print characters after the last break character till the end of the buffer.
- *          Set used_space = Number of characters after the last break character.
+ *          If no space was found
+ *              Print the buffer completely
+ *              Print a newline
+ *              Set used_space = 0
+ *          Else
+ *             Print the buffer till the last break character (excluding the break character).
+ *             Print a newline
+ *             Print characters after the last break character till the end of the buffer.
+ *             Set used_space = Number of characters after the last break character.
  */
 #include<stdio.h>
+#include<assert.h>
 #define FOLD_WIDTH 80
 
 int getline(char buffer[], int bufferSize)
@@ -77,6 +83,7 @@ int main()
             if(i == -1) 
             {
                 printf("%s", buffer);
+                printf("%s","\n");
                 usedSpace = 0;
             }
             else

@@ -18,6 +18,21 @@
  *          Print remaining characters of the buffer.
  *  ^^^
  *  For some reason, the above algorithm does not work correctly.
+ *  
+ *  New and improvised algorithm
+ *  =============================
+ *  Set used_space = 0
+ *  While EOF is not yet reached
+ *      Read (FOLD_WIDTH - used_space) characters from the input or till a newline, whichever is smaller into buffer.
+ *      If the last character of the buffer(string) is a newline
+ *          Print the buffer
+ *          Set used_space = 0
+ *      Else
+ *          Find the index of the last space, tab or hyphen (break character) from then end.
+ *          Print the buffer till the last break character (excluding the break character).
+ *          Print a newline
+ *          Print characters after the last break character till the end of the buffer.
+ *          Set used_space = Number of characters after the last break character.
  */
 #include<stdio.h>
 #define FOLD_WIDTH 80
@@ -40,31 +55,39 @@ int getline(char buffer[], int bufferSize)
 int main()
 {
     char buffer[FOLD_WIDTH + 1] = {'\0'};
-    int length, i, j, rem_char = 0;
-    while((length = getline(buffer, (FOLD_WIDTH + 1 - rem_char))))
+    int usedSpace = 0, j, length;
+    while((length = getline(buffer, (FOLD_WIDTH + 1 - usedSpace))))
     {
-        /** if(length < FOLD_WIDTH)
-          * {
-          *     printf("%s", buffer);
-          * }
-          * else
-          * { */
-        // Find the position of the last space, tab or hyphen.
-        i = -1;
-        for(i = (length-1); i >=0; i--)
+        if(buffer[length - 1] == '\n')
         {
-            if(buffer[i] == ' ' || buffer[i] == '\t' || buffer[i] == '-')
-                break;
+            printf("%s", buffer);
+            usedSpace = 0;
         }
-        if(i == -1)
-            i = FOLD_WIDTH - 1;
-        // printf("(%d)<%d>[%s]\n", length, i, buffer);
-        for(j = 0; j < i; j++)
-            putchar(buffer[j]);
-        putchar('\n');
-        for(j = i+1; j < FOLD_WIDTH; j++)
-            putchar(buffer[j]);
-        rem_char = FOLD_WIDTH - 1 - i;
-        /** } */
+        else
+        {
+            int i;
+            for(i = length - 1; i >= 0; i--)
+            {
+                if(buffer[i] == ' ' || buffer[i] == '\t' || buffer[i] == '-')
+                {
+                    break;
+                }
+            }
+            // No whitespace or tab or hyphen was found, Break exactly at fold width.
+            if(i == -1) 
+            {
+                printf("%s", buffer);
+                usedSpace = 0;
+            }
+            else
+            {
+                for(j = 0; j < i; j++)
+                    putchar(buffer[j]);
+                putchar('\n');
+                for(j = i + 1; j < length; j++)
+                    putchar(buffer[j]);
+                usedSpace = length - i - 1;
+            }
+        }
     }
 }

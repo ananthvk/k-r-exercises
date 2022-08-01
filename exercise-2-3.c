@@ -145,6 +145,8 @@ int main()
     int length;
     while((length = getline(buffer, MAX_HEX_SIZE)))
     {
+        if(length == 1)
+            break;
         // I found that %llu format does not work in my compiler, (MinGW gcc on windows)
         // So instead I have to use %I64u.
         // This format specifier is not cross platform.

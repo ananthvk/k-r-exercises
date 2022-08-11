@@ -1,5 +1,5 @@
-/** Exercise 2-8. Write a function rightrot(x,n) that returns the value of the integer x rotated
-  * to the right by n positions */
+/** Exercise 2-8. Write a function rightrot(x,n) that returns the value of the
+ * integer x rotated to the right by n positions */
 /*
  * Example
  * ========
@@ -33,7 +33,7 @@
  * result = (y << len) | (x >> n)
  *
  */
-#include<stdio.h>
+#include <stdio.h>
 /*
  * NOTE: This was my understanding of right rotate shift.
  * But according to various sources, you have to also shift the zeros according
@@ -42,14 +42,13 @@
  * 0 0 0 x x x y y
  * Right rotate shift by 2 results in
  * y y 0 0 0 x x x
- * Instead of 
+ * Instead of
  *       y y x x x
  */
 unsigned int rightrot(unsigned int x, unsigned int n)
 {
     unsigned int temp = x >> n, len = 0, y;
-    while(temp != 0)
-    {
+    while (temp != 0) {
         temp >>= 1;
         len++;
     }
@@ -60,12 +59,10 @@ unsigned int rightrot2(unsigned int x, unsigned int n)
 {
     // Range of n must be between 1 and 31.
     // As 32 bit shifts are undefined(for 4 byte int implementations).
-    if(n < 1)
-        n = 1;
-    if(n > 31)
-        n = 31;
+    if (n < 1) n = 1;
+    if (n > 31) n = 31;
     unsigned int y = ((1 << n) - 1) & x;
-    return (y << (sizeof(unsigned int)*8 - n)) | (x >> n);
+    return (y << (sizeof(unsigned int) * 8 - n)) | (x >> n);
 }
 int main()
 {

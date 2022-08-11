@@ -1,10 +1,6 @@
 #include "utest.h"
 
-
-UTEST(FunCheck, CheckFunc2)
-{
-    ASSERT_TRUE(1);
-}
+UTEST(FunCheck, CheckFunc2) { ASSERT_TRUE(1); }
 
 UTEST(FunCheck, CheckFunc)
 {

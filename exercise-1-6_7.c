@@ -1,11 +1,12 @@
-#include<stdio.h>
-int main(){
+#include <stdio.h>
+int main()
+{
     // Verifying that getchar() != EOF is either 1 or 0
     int ch, ch2;
-    ch = getchar()!=EOF;
-    ch2 = getchar()!=EOF;
-    printf("%d\n",ch);
-    printf("%d\n",ch2);
+    ch = getchar() != EOF;
+    ch2 = getchar() != EOF;
+    printf("%d\n", ch);
+    printf("%d\n", ch2);
     printf("Value of EOF is: %s\n", EOF);
 
     /*^Z*/

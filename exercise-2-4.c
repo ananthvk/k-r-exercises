@@ -1,5 +1,5 @@
-/** Exercise 2-4. Write an alternative version of squeeze(s1,s2) that deletes each character in
-  * s1 that matches any character in the string s2. */
+/** Exercise 2-4. Write an alternative version of squeeze(s1,s2) that deletes
+ * each character in s1 that matches any character in the string s2. */
 /*
  * Simple algorithm
  * ===============
@@ -31,27 +31,26 @@
  * Set the value of s1[j] to null character.
  *
  */
-#include<stdio.h>
-#include<string.h>
+#include <stdio.h>
+#include <string.h>
 #define CHAR_MAP_SIZE 256
 void squeeze(char s1[], char s2[])
 {
-    // exercise-2-4.c|43 col 21| warning: array subscript has type 'char' [-Wchar-subscripts]
-    // On some systems, char can also be signed, i.e. some characters can have negative integer values.
-    // So when it is used as array index, the program can access some other memory location and cause
+    // exercise-2-4.c|43 col 21| warning: array subscript has type 'char'
+    // [-Wchar-subscripts] On some systems, char can also be signed, i.e. some
+    // characters can have negative integer values. So when it is used as array
+    // index, the program can access some other memory location and cause
     // undefined behaviour.
     // SO THIS IMPLEMENTATION WORKS ONLY FOR ASCII and UNSIGNED CHAR SYSTEM.
-    // The general solution will be to implement a char-int map instead of an array.
+    // The general solution will be to implement a char-int map instead of an
+    // array.
     int charactermap[CHAR_MAP_SIZE] = {0};
     size_t i, j;
-    for(i = 0; i < strlen(s2); i++)
-    {
+    for (i = 0; i < strlen(s2); i++) {
         charactermap[s2[i]] = 1;
     }
-    for(i = j = 0; s1[i] != '\0'; i++)
-    {
-        if(!charactermap[s1[i]])
-        {
+    for (i = j = 0; s1[i] != '\0'; i++) {
+        if (!charactermap[s1[i]]) {
             s1[j++] = s1[i];
         }
     }

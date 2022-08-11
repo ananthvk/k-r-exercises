@@ -1,7 +1,7 @@
-/** Write the function any(s1,s2), which returns the first location in a string s1
-  * where any character from the string s2 occurs, or -1 if s1 contains no characters from s2.
-  * (The standard library function strpbrk does the same job but returns a pointer to the
-  * location.) */
+/** Write the function any(s1,s2), which returns the first location in a string
+ * s1 where any character from the string s2 occurs, or -1 if s1 contains no
+ * characters from s2. (The standard library function strpbrk does the same job
+ * but returns a pointer to the location.) */
 /*
  * I have reused code from exercise-2-4
  */
@@ -26,27 +26,26 @@
  * return -1
  *
  */
-#include<stdio.h>
-#include<string.h>
+#include <stdio.h>
+#include <string.h>
 #define CHAR_MAP_SIZE 256
 int any(char s1[], char s2[])
 {
-    // exercise-2-4.c|43 col 21| warning: array subscript has type 'char' [-Wchar-subscripts]
-    // On some systems, char can also be signed, i.e. some characters can have negative integer values.
-    // So when it is used as array index, the program can access some other memory location and cause
+    // exercise-2-4.c|43 col 21| warning: array subscript has type 'char'
+    // [-Wchar-subscripts] On some systems, char can also be signed, i.e. some
+    // characters can have negative integer values. So when it is used as array
+    // index, the program can access some other memory location and cause
     // undefined behaviour.
     // SO THIS IMPLEMENTATION WORKS ONLY FOR ASCII and UNSIGNED CHAR SYSTEM.
-    // The general solution will be to implement a char-int map instead of an array.
+    // The general solution will be to implement a char-int map instead of an
+    // array.
     int charactermap[CHAR_MAP_SIZE] = {0};
     size_t i, j;
-    for(i = 0; i < strlen(s2); i++)
-    {
+    for (i = 0; i < strlen(s2); i++) {
         charactermap[s2[i]] = 1;
     }
-    for(i = j = 0; s1[i] != '\0'; i++)
-    {
-        if(charactermap[s1[i]])
-        {
+    for (i = j = 0; s1[i] != '\0'; i++) {
+        if (charactermap[s1[i]]) {
             return j;
         }
         j++;

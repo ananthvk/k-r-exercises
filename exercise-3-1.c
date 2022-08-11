@@ -1,4 +1,4 @@
-#include<stdio.h>
+#include <stdio.h>
 /* binsearch: find x in v[0] <= v[1] <= ... <= v[n-1] */
 /*
 int binsearch(int x, int v[], int n)
@@ -22,25 +22,21 @@ int binsearch(int x, int v[], int n)
     return -1;
 }
 */
-#include<assert.h>
+#include <assert.h>
 int binsearch(int x, int v[], int n)
 {
-    int low = 0, high = n-1, mid;
-    while(low <= high)
-    {
-        mid = (low + high)/2;
-        if(v[mid] == x)
-            return mid;
-        if(v[mid] < x)
-            low = mid + 1;
-        if(v[mid] > x)
-            high = mid - 1;
+    int low = 0, high = n - 1, mid;
+    while (low <= high) {
+        mid = (low + high) / 2;
+        if (v[mid] == x) return mid;
+        if (v[mid] < x) low = mid + 1;
+        if (v[mid] > x) high = mid - 1;
     }
     return -1;
 }
 
 int main()
 {
-    int arr [] = {3, 7, 11, 16, 21, 23, 321, 441, 719, 1288, 1387, 41223};
+    int arr[] = {3, 7, 11, 16, 21, 23, 321, 441, 719, 1288, 1387, 41223};
     printf("%d\n", binsearch(1288, arr, 12));
 }

@@ -1,21 +1,20 @@
 /** Write a function htoi(s), which converts a string of hexadecimal digits
-  * (including an optional 0x or 0X) into its equivalent integer value. The allowable digits are 0
-  * through 9, a through f, and A through F. */
+ * (including an optional 0x or 0X) into its equivalent integer value. The
+ * allowable digits are 0 through 9, a through f, and A through F. */
 
-#include<stdio.h>
-#include<ctype.h>
-#include<limits.h>
-// Such large hex values are not supported as the max hex value supported depends on
-// the range of unsigned long long int.
-// Typically it is 18446744073709551615 or 0xffffffffffffffff in hex.
-// But to support multiple leading 0s, I have set MAX_HEX_SIZE to a much larger value.
+#include <ctype.h>
+#include <limits.h>
+#include <stdio.h>
+// Such large hex values are not supported as the max hex value supported
+// depends on the range of unsigned long long int. Typically it is
+// 18446744073709551615 or 0xffffffffffffffff in hex. But to support multiple
+// leading 0s, I have set MAX_HEX_SIZE to a much larger value.
 #define MAX_HEX_SIZE 256
 int getFaceValue(char s)
 {
     int val = -1;
-    switch(s)
-    {
-        case'0':
+    switch (s) {
+        case '0':
             val = 0;
             break;
         case '1':
@@ -92,13 +91,12 @@ else if(isalpha(*s) && islower(*s))
 int getline(char buffer[], int bufferSize)
 {
     int ch, bufferIndex = 0;
-    while(bufferIndex < (bufferSize-1))
-    {
+    while (bufferIndex < (bufferSize - 1)) {
         ch = getchar();
-        if(ch == EOF) break;
+        if (ch == EOF) break;
         buffer[bufferIndex] = ch;
         bufferIndex++;
-        if(ch == '\n') break;
+        if (ch == '\n') break;
     }
     buffer[bufferIndex] = '\0';
     return bufferIndex;
@@ -111,25 +109,21 @@ unsigned long long int htoi(char s[])
     // FIXED - The error was that I had not put a case for the '0' character.
     unsigned long long int val = 0;
     int i = 0, nextCharMightBeX = 0;
-    while(*s != '\0')
-    {
-        if(i == 0 && *s == '0')
-        {
+    while (*s != '\0') {
+        if (i == 0 && *s == '0') {
             nextCharMightBeX = 1;
         }
-        if(i == 1 && (*s == 'x' || *s == 'X') && nextCharMightBeX)
-        {
+        if (i == 1 && (*s == 'x' || *s == 'X') && nextCharMightBeX) {
             s++;
             i++;
             continue;
         }
 
-        if(getFaceValue(*s) == -1)
-        {
+        if (getFaceValue(*s) == -1) {
             // Invalid input, return the previous best known value.
             return val;
         }
-        val = (val*16) + getFaceValue(*s);
+        val = (val * 16) + getFaceValue(*s);
         s++;
         i++;
     }
@@ -139,17 +133,15 @@ unsigned long long int htoi(char s[])
 // 0xffffffffffffffff
 int main()
 {
-    printf("Max supported decimal value: %I64u\n",ULLONG_MAX); 
+    printf("Max supported decimal value: %I64u\n", ULLONG_MAX);
     printf("Max supported hex value: 0x%I64x\n", ULLONG_MAX);
     char buffer[MAX_HEX_SIZE];
     int length;
-    while((length = getline(buffer, MAX_HEX_SIZE)))
-    {
-        if(length == 1)
-            break;
-        // I found that %llu format does not work in my compiler, (MinGW gcc on windows)
-        // So instead I have to use %I64u.
-        // This format specifier is not cross platform.
+    while ((length = getline(buffer, MAX_HEX_SIZE))) {
+        if (length == 1) break;
+        // I found that %llu format does not work in my compiler, (MinGW gcc on
+        // windows) So instead I have to use %I64u. This format specifier is not
+        // cross platform.
         printf("%I64u\n", htoi(buffer));
     }
 }

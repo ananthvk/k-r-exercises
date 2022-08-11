@@ -1,5 +1,6 @@
-/** Exercise 2-7. Write a function invert(x,p,n) that returns x with the n bits that begin at
-  * position p inverted (i.e., 1 changed into 0 and vice versa), leaving the others unchanged. */
+/** Exercise 2-7. Write a function invert(x,p,n) that returns x with the n bits
+ * that begin at position p inverted (i.e., 1 changed into 0 and vice versa),
+ * leaving the others unchanged. */
 /*
  * SOLUTION:
  * ===========
@@ -27,13 +28,7 @@ f = lambda x, p, n: print(bin(x), '\n', bin(x ^ (((1 << n) - 1) << p)), sep='')
 f(2**24 - 1,5,6)
 f(2**24,5,6)
 */
-#include<stdio.h>
+#include <stdio.h>
 typedef unsigned int uint;
-uint invert(uint x, uint p, uint n)
-{
-    return x ^ (((1 << n) - 1) << p);
-}
-int main()
-{
-    printf("%d\n", invert(40, 3, 3));
-}
+uint invert(uint x, uint p, uint n) { return x ^ (((1 << n) - 1) << p); }
+int main() { printf("%d\n", invert(40, 3, 3)); }

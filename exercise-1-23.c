@@ -1,8 +1,8 @@
-#include<stdio.h>
+#include <stdio.h>
 /*
  * My implementation of Decomment uses a state machine.
  */
-enum State{
+enum State {
     SEARCH,
     SEMI_COMMENT,
     CHAR,
@@ -18,11 +18,9 @@ enum State state = SEARCH;
 
 void processChar(int ch)
 {
-    switch(state)
-    {
+    switch (state) {
         case SEARCH:
-            switch(ch)
-            {
+            switch (ch) {
                 case '/':
                     state = SEMI_COMMENT;
                     break;
@@ -41,8 +39,7 @@ void processChar(int ch)
             break;
 
         case SEMI_COMMENT:
-            switch(ch)
-            {
+            switch (ch) {
                 case '/':
                     state = SINGLE_LINE;
                     break;
@@ -58,8 +55,7 @@ void processChar(int ch)
             break;
 
         case SINGLE_LINE:
-            switch(ch)
-            {
+            switch (ch) {
                 case '\n':
                     putchar('\n');
                     state = SEARCH;
@@ -71,8 +67,7 @@ void processChar(int ch)
             break;
 
         case MULTI_LINE:
-            switch(ch)
-            {
+            switch (ch) {
                 case '*':
                     state = MULTI_LINE_SEMI;
                     break;
@@ -80,8 +75,7 @@ void processChar(int ch)
             break;
 
         case MULTI_LINE_SEMI:
-            switch(ch)
-            {
+            switch (ch) {
                 case '/':
                     state = SEARCH;
                     break;
@@ -92,8 +86,7 @@ void processChar(int ch)
             break;
 
         case STR:
-            switch(ch)
-            {
+            switch (ch) {
                 case '\\':
                     state = STR_ESC;
                     break;
@@ -114,8 +107,7 @@ void processChar(int ch)
             break;
 
         case CHAR:
-            switch(ch)
-            {
+            switch (ch) {
                 case '\\':
                     state = CHAR_ESC;
                     break;
@@ -140,8 +132,7 @@ void processChar(int ch)
 int main()
 {
     int ch;
-    while((ch=getchar())!=EOF)
-    {
+    while ((ch = getchar()) != EOF) {
         processChar(ch);
     }
 }

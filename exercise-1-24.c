@@ -51,7 +51,7 @@ int main()
                                "exceeded");
                         return -1;
                     }
-                    stack[++stackPtr] = ch;
+                    stack[++stackPtr] = (char)ch;
                 }
                 else if (ch == '}' || ch == ')' || ch == ']') {
                     if (stackPtr < 0) {
@@ -123,7 +123,6 @@ int main()
             default:
                 printf("<<<<<<%s>>>>>>\n", "SERIOUS ERROR - NO SUCH STATE");
                 return -1;
-                break;
         }
     }
     if (stackPtr > 0) {

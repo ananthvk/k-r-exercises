@@ -32,6 +32,8 @@
 
 #ifndef SHEREDOM_UTEST_H_INCLUDED
 #define SHEREDOM_UTEST_H_INCLUDED
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
 
 #ifdef _MSC_VER
 /*
@@ -1413,4 +1415,6 @@ cleanup:
     return utest_main(argc, argv);                                             \
   }
 
+#pragma clang diagnostic pop
 #endif /* SHEREDOM_UTEST_H_INCLUDED */
+

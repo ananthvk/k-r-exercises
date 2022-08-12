@@ -29,7 +29,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-typedef enum OPType { OP_SIN, OP_COS, OP_TAN, OP_COT, OP_EXP } OPType;
+typedef enum OPType {
+    OP_SIN,
+    OP_COS,
+    OP_TAN,
+    OP_COT,
+    OP_EXP,
+    OP_POW,
+    OP_LOG
+} OPType;
 typedef enum TokenType {
     NUMBER,
     IDENTIFIER,
@@ -69,6 +77,9 @@ char buffer[512] = {'\0'};
 int TOKEN_DEBUG_ENABLED = 1; /* Whether to print token details or not */
 int err_occured = 0;
 int running = 1;
+// Only uppercase variables are supported as some math constants are in
+// lowercase Add a variable lookup table for 26 variables
+int variable_lookup[26] = {0};
 // ===================================
 // Functions for safely handling the source string
 // by including length checks
@@ -458,13 +469,45 @@ void unaryop(OPType type)
         case OP_COT:
             result = cos(rhs) / sin(rhs);
             break;
-            /* default:
-             *     printf("%s\n", "INTERNAL ERROR: Unknown unary operator");
-             *     err_occured = 1;
-             *     return; */
+        case OP_LOG:
+            result = log(rhs);
+            break;
+        default:
+            printf("%s\n", "INTERNAL ERROR: Unknown unary operator");
+            err_occured = 1;
+            return;
     }
     if (!push(result)) {
         printf("ERROR: %s\n", "Stack is full");
+        err_occured = 1;
+        return;
+    }
+}
+
+void binaryfunc(OPType type)
+{
+    double result = 0, lhs, rhs;
+    int rhs_success = 0;
+
+    if (!pop(&rhs)) {
+        printf("ERROR: Not enough operands for function taking 2 args\n");
+        err_occured = 1;
+        return;
+    }
+    // If control has come here, it means that pop(&rhs) didn't fail
+    rhs_success = 1;
+    if (!pop(&lhs)) {
+        if (rhs_success) push(rhs);
+        printf("ERROR: Not enough operands for function taking 2 args\n");
+        err_occured = 1;
+        return;
+    }
+
+    if (type == OP_POW) {
+        result = pow(lhs, rhs);
+    }
+    if (!push(result)) {
+        printf("ERROR: %s\n", "Stack is full, Internal error");
         err_occured = 1;
         return;
     }
@@ -505,7 +548,7 @@ void binop(char op)
             result = lhs * rhs;
             break;
         case '/':
-            if (fabs(rhs) <= 1e-16) {
+            if (fabs(rhs) <= 1e-50) {
                 printf("%s\n", "ERROR: Division by zero");
                 err_occured = 1;
                 return;
@@ -515,7 +558,7 @@ void binop(char op)
             }
             break;
         case '%':
-            if (fabs(rhs) <= 1e-16) {
+            if (fabs(rhs) <= 1e-50) {
                 printf("%s\n", "ERROR: Modulus by zero");
                 err_occured = 1;
                 return;
@@ -685,6 +728,42 @@ void calculate()
                     if (strcmp(buffer, "tan") == 0) unaryop(OP_TAN);
                     if (strcmp(buffer, "cot") == 0) unaryop(OP_COT);
                     if (strcmp(buffer, "exp") == 0) unaryop(OP_EXP);
+                    if (strcmp(buffer, "log") == 0) unaryop(OP_LOG);
+                    if (strcmp(buffer, "pow") == 0) binaryfunc(OP_POW);
+
+                    // Handle single letter variables
+                    // Only uppercase variables are supported as some math
+                    // constants are in lowercase
+                    if (t.length == 1) {
+                        if (t.src[t.index] >= 'a' && t.src[t.index] <= 'z') {
+                            if (!push(variable_lookup[(int)(t.src[t.index] - 'a')])) {
+                                printf(
+                                    "ERROR: Stack is full, unable to "
+                                    "dereference variable\n");
+                                err_occured = 1;
+                                return;
+                            }
+                        }
+                        else {
+                            printf(
+                                "ERROR: Only lowercase variables are "
+                                "supported\n");
+                            err_occured = 1;
+                            return;
+                        }
+                    }
+                    else {
+                        err_occured = 1;
+                        printf("%s%s\n",
+                               "Error: Unknown identifier or function - ",
+                               buffer);
+                        printf("%s\n",
+                               "Type \"help\" to view all supported commands");
+                        printf("%s\n",
+                               "If you meant to assign a variable, only single "
+                               "character variables are supported");
+                        return;
+                    }
                     break;
 
                 case PLUS:

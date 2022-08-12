@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+typedef enum OPType { OP_SIN, OP_COS, OP_TAN, OP_COT, OP_EXP } OPType;
 typedef enum TokenType {
     NUMBER,
     IDENTIFIER,
@@ -57,6 +58,7 @@ typedef struct Token {
 // ===================================
 #define MAX_OPERANDS 1024
 #define BUFFER_SIZE 512
+#define VERSION "1.0.0"
 double op_stack[MAX_OPERANDS] = {0}; /* Stack to store the operands */
 int sp = -1;                         /* Stack index */
 int cp = 0; /* Character index which is the index of the current character to be
@@ -66,12 +68,61 @@ char buffer[512] = {'\0'};
 /* Temporary buffer to store numbers, to convert them */
 int TOKEN_DEBUG_ENABLED = 1; /* Whether to print token details or not */
 int err_occured = 0;
+int running = 1;
 // ===================================
 // Functions for safely handling the source string
 // by including length checks
 // These functions consider a null char at the end of src_string, i.e. at index
 // BUFFER_SIZE -1 So they check if the index is less than BUFFER_SIZE - 1
 double valueAt(int n);
+void printHelpMessage()
+{
+    printf("%s %s\n",
+           "Welcome to Shankar's RPN (Reverse polish notation) Calculator",
+           VERSION);
+    printf("%s%s\n", "Version: ", VERSION);
+    printf("Max supported length of a single line of input: %d\n", BUFFER_SIZE);
+    printf("Max number of operands supported: %d\n", MAX_OPERANDS);
+    printf(
+        "$ rpn    - runs this calculator in interactive mode, Enter the "
+        "expression through standard input\n");
+    printf("%s\n", "Type @ and press enter to toggle debug mode");
+    printf("Operators\n");
+    printf("%-12s%s\n", "+", "Add two numbers and push result on stack");
+    printf("%-12s%s\n", "-",
+           "Subtract two numbers and push result on the stack");
+    printf("%-12s%s\n", "*",
+           "Multiply two numbers and push result on the stack");
+    printf("%-12s%s\n", "/", "Divide two numbers and push result on the stack");
+    printf("%-12s%s\n", "%",
+           "Find the modulus of two numbers and push result on stack");
+    printf("\n");
+    printf("Mathematical functions\n");
+    printf("%-12s%s\n", "sin", "Finds the sine of the number");
+    printf("%-12s%s\n", "cos",
+           "Finds the cosine the of top number of the stack");
+    printf("%-12s%s\n", "tan", "Finds the tan of the number");
+    printf("%-12s%s\n", "cot", "Finds the cot of the number");
+    printf("%-12s%s\n", "exp", "Finds the exp of the number");
+    printf("\n");
+    printf("Mathematical constants\n");
+    printf("%-12s%s\n", "e",
+           "Pushes the value of e, Euler's number 2.718... on the stack");
+    printf("%-12s%s\n", "pi", "Pushes the value of Pi 3.1415.... on the stack");
+    printf("\n");
+    printf("Commands\n");
+    printf("%-12s%s\n", "exit", "Exits the rpn interactive prompt");
+    printf("%-12s%s\n", "quit", "Same as exit, quits the rpn calculator");
+    printf("%-12s%s\n", "help", "Prints this help message");
+    printf("%-12s%s\n", "dup",
+           "Duplicates the element at the top of the stack");
+    printf("%-12s%s\n", "peek", "Prints the value of the top of the stack");
+    printf("%-12s%s\n", "pop", "Remove the topmost element from the stack");
+    printf("%-12s%s\n", "swap", "Swaps the two topmost elements");
+    printf("%-12s%s\n", "clear", "Clears the stack");
+    // printf("%-12s%s\n", "", "");
+    // printf("%-12s%s\n", "", "");
+}
 char peekChar()
 {
     // Gets the character at index cp without incrementing cp.
@@ -94,9 +145,10 @@ void clearScreen()
 
 void displayStack()
 {
+    printf("%s\n", "============================");
     for (int k = 0; k <= sp; k++) {
         printf("[%d: ", k);
-        printf("%.3f ", valueAt(k));
+        printf("%.9f ", valueAt(k));
         printf("%s", " ]\n");
     }
 }
@@ -170,6 +222,22 @@ int pop(double* var)
     }
 }
 
+int peek(double* var)
+{
+    /*
+     * Function which peeks an element from the stack and sets the passed
+     * element to that value. If the stack is empty, 0 will be returned
+     */
+    if (sp < 0) {
+        if (var) *var = 0;
+        return 0;
+    }
+    else {
+        if (var) *var = op_stack[sp];
+        return 1;
+    }
+}
+
 int push(double var)
 {
     /*
@@ -177,7 +245,7 @@ int push(double var)
      * If the stack is full, 0 will be returned and 1 in case of success
      */
     if (sp == (MAX_OPERANDS - 1)) {
-        if(TOKEN_DEBUG_ENABLED)
+        if (TOKEN_DEBUG_ENABLED)
             printf("%s\n", "[WARNING: Operator stack is full]");
         return 0;
     }
@@ -364,8 +432,47 @@ void displayToken(Token t)
     putchar('\n');
 }
 
+void unaryop(OPType type)
+{
+    // Function to handle functions or operators which take a single operand
+    // like sin, cos, etc.
+    double rhs, result = 0;
+    if (!pop(&rhs)) {
+        printf("ERROR: Not enough operands for the given function/operator\n");
+        err_occured = 1;
+        return;
+    }
+    switch (type) {
+        case OP_SIN:
+            result = sin(rhs);
+            break;
+        case OP_COS:
+            result = cos(rhs);
+            break;
+        case OP_TAN:
+            result = tan(rhs);
+            break;
+        case OP_EXP:
+            result = exp(rhs);
+            break;
+        case OP_COT:
+            result = cos(rhs) / sin(rhs);
+            break;
+            /* default:
+             *     printf("%s\n", "INTERNAL ERROR: Unknown unary operator");
+             *     err_occured = 1;
+             *     return; */
+    }
+    if (!push(result)) {
+        printf("ERROR: %s\n", "Stack is full");
+        err_occured = 1;
+        return;
+    }
+}
+
 void binop(char op)
 {
+    // Function to handle operators which expect two operands such as +, - etc
     double result = 0, lhs, rhs;
     int rhs_success = 0;
 
@@ -381,8 +488,7 @@ void binop(char op)
         // The program pops 32 and stores it in a variable
         // But it errors here as there is no lhs
         // So in this case, we have to push back that 32 (or whatever number)
-        if(rhs_success)
-            push(rhs);
+        if (rhs_success) push(rhs);
         printf("ERROR: Not enough operands for operator '%c' (lhs)\n", op);
         err_occured = 1;
         return;
@@ -440,7 +546,13 @@ void calculate()
     // To reset the index variables and state
     Token t;
     int i;
+    // var for temporary usage
+    double var;
     do {
+        if (err_occured) {
+            // If any error had occured, do not continue scanning
+            return;
+        }
         t = getNextToken();
         if (t.type == UNKNOWN) {
             printf("ERROR: Uknown character (%c) at index %d in input\n",
@@ -462,6 +574,117 @@ void calculate()
                         err_occured = 1;
                         return;
                     }
+                    break;
+                case IDENTIFIER:
+                    // Copy to temporary buffer to do manipulations
+                    for (i = 0; i < t.length; i++) {
+                        assert((t.index + i) < (BUFFER_SIZE - 1));
+                        assert((t.index + i) >= 0);
+                        buffer[i] = t.src[t.index + i];
+                    }
+                    buffer[i] = '\0';
+
+                    // Handle some variables such as e and pi
+                    if (strcmp(buffer, "pi") == 0) {
+                        if (!push(3.14159265358)) {
+                            printf("ERROR: %s\n", "Stack is full");
+                            err_occured = 1;
+                            return;
+                        }
+                    }
+                    if (strcmp(buffer, "e") == 0) {
+                        if (!push(2.71828182845))
+
+                        {
+                            printf("ERROR: %s\n", "Stack is full");
+                            err_occured = 1;
+                            return;
+                        }
+                    }
+
+                    // Handle some commands
+                    if (strcmp(buffer, "exit") == 0 ||
+                        strcmp(buffer, "quit") == 0) {
+                        running = 0;
+                    }
+                    if (strcmp(buffer, "help") == 0) {
+                        printHelpMessage();
+                    }
+                    if (strcmp(buffer, "dup") == 0) {
+                        if (!peek(&var)) {
+                            printf(
+                                "%s\n",
+                                "ERROR: Unable to duplicate element as stack "
+                                "is empty");
+                            err_occured = 1;
+                            return;
+                        }
+                        if (!push(var)) {
+                            printf("%s\n",
+                                   "ERROR: Unable to duplicate element as "
+                                   "stack is full");
+                            err_occured = 1;
+                            return;
+                        }
+                    }
+                    if (strcmp(buffer, "peek") == 0) {
+                        peek(&var);
+                        printf("%f\n", var);
+                    }
+                    if (strcmp(buffer, "pop") == 0) {
+                        if (!pop(&var)) {
+                            printf("%s\n",
+                                   "ERROR: Unable to pop element as "
+                                   "stack is empty");
+                            err_occured = 1;
+                            return;
+                        }
+                        printf("%f\n", var);
+                    }
+                    if (strcmp(buffer, "swap") == 0) {
+                        // Stack: a b c d e f
+                        // v1 = f
+                        // v2 = e
+                        // After pushing back again
+                        // a b c f e
+                        // The elements are swapped
+                        double v1, v2;
+                        int v1_success = 0;
+                        if (!pop(&v1)) {
+                            printf("%s\n",
+                                   "ERROR: Unable to swap as "
+                                   "there are not enough elements");
+                            err_occured = 1;
+                            return;
+                        }
+                        v1_success = 1;
+                        if (!pop(&v2)) {
+                            printf("%s\n",
+                                   "ERROR: Unable to swap as "
+                                   "there are not enough elements");
+                            err_occured = 1;
+                            if (v1_success) {
+                                // One element has already been popped out.
+                                // Push it back into the stack
+                                push(v1);
+                            }
+                            return;
+                        }
+                        // No need to check if the stack is full because on
+                        // calling pop() twice above, there will be 2 spaces
+                        push(v1);
+                        push(v2);
+                    }
+                    if (strcmp(buffer, "clear") == 0) {
+                        sp = -1;
+                    }
+
+                    // Handle math functions
+                    if (strcmp(buffer, "sin") == 0) unaryop(OP_SIN);
+                    if (strcmp(buffer, "cos") == 0) unaryop(OP_COS);
+                    if (strcmp(buffer, "tan") == 0) unaryop(OP_TAN);
+                    if (strcmp(buffer, "cot") == 0) unaryop(OP_COT);
+                    if (strcmp(buffer, "exp") == 0) unaryop(OP_EXP);
                     break;
 
                 case PLUS:
@@ -513,10 +736,25 @@ int main()
 {
     int length;
     clearScreen();
+    printf("%s %s\n",
+           "Welcome to Shankar's RPN (Reverse polish notation) Calculator",
+           VERSION);
+    printf("Max supported length of a single line of input: %d\n", BUFFER_SIZE);
+    printf("Max number of operands supported: %d\n", MAX_OPERANDS);
+    printf(
+        "$ rpn    - runs this calculator in interactive mode, Enter the "
+        "expression through standard input\n");
+    printf("%s\n", "Type @ and press enter to toggle debug mode");
+    printf("Type \"help\" and press enter to get help\n");
     printf("%s", ">>");
     while ((length = getline(src_string, 512))) {
         clearScreen();
         calculate();
+        if (!running) {
+            clearScreen();
+            displayStack();
+            break;
+        }
         displayStack();
         // reset();
         cp = 0;

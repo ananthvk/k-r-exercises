@@ -23,6 +23,16 @@
  * finding the result from stdin. 2) This allows me to test the code. 3) No
  * getch and ungetch as the program takes a char array as argument.
  */
+/*
+ * NOTE:
+ * For assignment statements, I have used infix notation instead of RPN because
+ * it is much easier to implement For example a b 1 + = --> Should be
+ * interpreted as a = b + 1 Which is more complex as the program will not know
+ * whether the value of a should be set or used.
+ * One workaround is to use a token stack, where instead of just storing the
+ * values, The program will store the tokens and then decide whether to set or
+ * use the value.
+ */
 #include <assert.h>
 #include <ctype.h>
 #include <math.h>
@@ -36,7 +46,12 @@ typedef enum OPType {
     OP_COT,
     OP_EXP,
     OP_POW,
-    OP_LOG
+    OP_LOG,
+    OP_LOG10,
+    OP_ABS,
+    OP_CEIL,
+    OP_FLOOR,
+    OP_SQRT,
 } OPType;
 typedef enum TokenType {
     NUMBER,
@@ -472,6 +487,21 @@ void unaryop(OPType type)
         case OP_LOG:
             result = log(rhs);
             break;
+        case OP_LOG10:
+            result = log10(rhs);
+            break;
+        case OP_SQRT:
+            result = sqrt(rhs);
+            break;
+        case OP_ABS:
+            result = fabs(rhs);
+            break;
+        case OP_CEIL:
+            result = ceil(rhs);
+            break;
+        case OP_FLOOR:
+            result = floor(rhs);
+            break;
         default:
             printf("%s\n", "INTERNAL ERROR: Unknown unary operator");
             err_occured = 1;
@@ -728,17 +758,23 @@ void calculate()
                     if (strcmp(buffer, "tan") == 0) unaryop(OP_TAN);
                     if (strcmp(buffer, "cot") == 0) unaryop(OP_COT);
                     if (strcmp(buffer, "exp") == 0) unaryop(OP_EXP);
+
                     if (strcmp(buffer, "log") == 0) unaryop(OP_LOG);
+                    if (strcmp(buffer, "log10") == 0) unaryop(OP_LOG10);
+                    if (strcmp(buffer, "abs") == 0) unaryop(OP_ABS);
+                    if (strcmp(buffer, "ceil") == 0) unaryop(OP_CEIL);
+                    if (strcmp(buffer, "floor") == 0) unaryop(OP_FLOOR);
+                    if (strcmp(buffer, "sqrt") == 0) unaryop(OP_SQRT);
                     if (strcmp(buffer, "pow") == 0) binaryfunc(OP_POW);
 
                     // Handle single letter variables
                     // Only uppercase variables are supported as some math
                     // constants are in lowercase
+                    /*
                     if (t.length == 1) {
                         if (t.src[t.index] >= 'a' && t.src[t.index] <= 'z') {
-                            if (!push(variable_lookup[(int)(t.src[t.index] - 'a')])) {
-                                printf(
-                                    "ERROR: Stack is full, unable to "
+                            if (!push(variable_lookup[(int)(t.src[t.index] -
+                    'a')])) { printf( "ERROR: Stack is full, unable to "
                                     "dereference variable\n");
                                 err_occured = 1;
                                 return;
@@ -752,7 +788,7 @@ void calculate()
                             return;
                         }
                     }
-                    else {
+                    else if(t.length > 1){
                         err_occured = 1;
                         printf("%s%s\n",
                                "Error: Unknown identifier or function - ",
@@ -764,6 +800,7 @@ void calculate()
                                "character variables are supported");
                         return;
                     }
+                    */
                     break;
 
                 case PLUS:

@@ -35,6 +35,7 @@
  */
 #include <assert.h>
 #include <ctype.h>
+#include <float.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,10 +49,14 @@ typedef enum OPType {
     OP_POW,
     OP_LOG,
     OP_LOG10,
+    OP_LOGN,
     OP_ABS,
     OP_CEIL,
     OP_FLOOR,
     OP_SQRT,
+    OP_FACTORIAL,
+    OP_MOD,
+    OP_BIT_NOT
 } OPType;
 typedef enum TokenType {
     NUMBER,
@@ -62,6 +67,14 @@ typedef enum TokenType {
     FORWARD_SLASH,
     STAR,
     MODULUS,
+    EXCLAMATION,
+    ASSIGNMENT,
+    BIT_LSHIFT,  // <<
+    BIT_RSHIFT,  // >>
+    BIT_AND,     // &
+    BIT_OR,      // |
+    BIT_NOT,     /// ~
+    BIT_XOR,     // ^
 
     DEBUG_CHAR,  // Temporary Send @ to toggle debug mode
 
@@ -81,6 +94,8 @@ typedef struct Token {
 // ===================================
 #define MAX_OPERANDS 1024
 #define BUFFER_SIZE 512
+#define RADIAN 1
+#define DEGREE 2
 #define VERSION "1.0.0"
 double op_stack[MAX_OPERANDS] = {0}; /* Stack to store the operands */
 int sp = -1;                         /* Stack index */
@@ -89,18 +104,81 @@ int cp = 0; /* Character index which is the index of the current character to be
 char src_string[BUFFER_SIZE] = {'\0'};
 char buffer[512] = {'\0'};
 /* Temporary buffer to store numbers, to convert them */
+// Some config options
 int TOKEN_DEBUG_ENABLED = 1; /* Whether to print token details or not */
 int err_occured = 0;
+int stack_shown = 1;
+int show_errors = 1;
+int display_prompt = 1;
+int clear_screen = 1;
+int angle_measure = RADIAN;
 int running = 1;
 // Only uppercase variables are supported as some math constants are in
 // lowercase Add a variable lookup table for 26 variables
-int variable_lookup[26] = {0};
+
+double variable_lookup[26] = {0};
+int variables_set[26] = {0};
+char alphabets[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 // ===================================
 // Functions for safely handling the source string
 // by including length checks
 // These functions consider a null char at the end of src_string, i.e. at index
 // BUFFER_SIZE -1 So they check if the index is less than BUFFER_SIZE - 1
+//
+// Functions
+// ===============
+// Functions for the operand stack
 double valueAt(int n);
+int pop(double* var);
+int peek(double* var);
+int push(double var);
+void displayStack();
+
+// Functions for handling the expression string.
+char peekChar();
+char peekNextChar();
+char charAt(int n);
+char getChar();
+void setChar(char c);
+
+// Function for handling unary, binary and functions
+void unaryop(OPType type);
+void binaryfunc(OPType type);
+void binop(char op);
+
+// Functions related to tokens
+Token processIdentifier();
+Token processNumber();
+void consumeNumber();
+Token getNextToken();
+void displayToken(Token t);
+
+// Helper functions
+long int factorial(int n);
+void reset();
+int getline_(char buffer_[], int bufferSize);
+void clearScreen();
+void printHelpMessage();
+void displayMemory();
+
+// Main functions
+void calculate();
+int main();
+
+// Functions to handle configuration of display
+void enableDisplay()
+{
+    stack_shown = 1;
+    show_errors = 1;
+    display_prompt = 1;
+}
+void disableDisplay()
+{
+    stack_shown = 0;
+    show_errors = 0;
+    display_prompt = 0;
+}
+
 void printHelpMessage()
 {
     printf("%s %s\n",
@@ -109,45 +187,130 @@ void printHelpMessage()
     printf("%s%s\n", "Version: ", VERSION);
     printf("Max supported length of a single line of input: %d\n", BUFFER_SIZE);
     printf("Max number of operands supported: %d\n", MAX_OPERANDS);
-    printf(
-        "$ rpn    - runs this calculator in interactive mode, Enter the "
-        "expression through standard input\n");
+    printf("\n");
+
+    printf("Enter the expression through standard input\n");
+    printf("Type \"help\" and press enter to get this help message\n");
     printf("%s\n", "Type @ and press enter to toggle debug mode");
+    printf("%s\n", "============================");
     printf("Operators\n");
-    printf("%-12s%s\n", "+", "Add two numbers and push result on stack");
-    printf("%-12s%s\n", "-",
+    printf("%s\n", "============================");
+    printf("%-16s%s\n", "+", "Add two numbers and push result on stack");
+    printf("%-16s%s\n", "-",
            "Subtract two numbers and push result on the stack");
-    printf("%-12s%s\n", "*",
+    printf("%-16s%s\n", "*",
            "Multiply two numbers and push result on the stack");
-    printf("%-12s%s\n", "/", "Divide two numbers and push result on the stack");
-    printf("%-12s%s\n", "%",
+    printf("%-16s%s\n", "/", "Divide two numbers and push result on the stack");
+    printf("%-16s%s\n", "%",
            "Find the modulus of two numbers and push result on stack");
+    printf("%-16s%s\n", "&", "Bitwise AND");
+    printf("%-16s%s\n", "|", "Bitwise OR");
+    printf("%-16s%s\n", "~", "Bitwise NOT");
+    printf("%-16s%s\n", "^", "Bitwise XOR");
+    printf("%-16s%s\n", ">>", "Right shift");
+    printf("%-16s%s\n", "<<", "Left shift");
+    // printf("%-16s%s\n", "", "");
     printf("\n");
     printf("Mathematical functions\n");
-    printf("%-12s%s\n", "sin", "Finds the sine of the number");
-    printf("%-12s%s\n", "cos",
+    printf("%s\n", "============================");
+    printf("%-16s%s\n", "sin", "Finds the sine of the number");
+    printf("%-16s%s\n", "cos",
            "Finds the cosine the of top number of the stack");
-    printf("%-12s%s\n", "tan", "Finds the tan of the number");
-    printf("%-12s%s\n", "cot", "Finds the cot of the number");
-    printf("%-12s%s\n", "exp", "Finds the exp of the number");
+    printf("%-16s%s\n", "tan", "Finds the tan of a number");
+    printf("%-16s%s\n", "cot", "Finds the cot of a number");
+    printf("%-16s%s\n", "exp", "Finds the exp of a number");
+    printf("%-16s%s\n", "pow",
+           "Finds the value of a raised to b, Example: a b pow");
+    printf("%-16s%s\n", "log", "Finds the log of a number, Example: a log");
+    printf("%-16s%s\n", "log10",
+           "Finds the log to base 10 of a number, Example a log10");
+    printf("%-16s%s\n", "logn",
+           "Finds the log to base n of a number, Example a b logn is "
+           "equivalent to log to base b, a");
+    printf("%-16s%s\n", "abs", "Finds the aboslute value of a number");
+    printf("%-16s%s\n", "ceil", "Finds the ceil value of a a number");
+    printf("%-16s%s\n", "floor", "Finds the floor value of a a number");
+    printf("%-16s%s\n", "sqrt", "Finds the square root of a a number");
+    printf("%-16s%s\n", "mod",
+           "Finds the remainder, Example a b mod is equivalent to a % b");
     printf("\n");
     printf("Mathematical constants\n");
-    printf("%-12s%s\n", "e",
+    printf("%s\n", "============================");
+    printf("%-16s%s\n", "e",
            "Pushes the value of e, Euler's number 2.718... on the stack");
-    printf("%-12s%s\n", "pi", "Pushes the value of Pi 3.1415.... on the stack");
+    printf("%-16s%s\n", "pi", "Pushes the value of Pi 3.1415.... on the stack");
     printf("\n");
     printf("Commands\n");
-    printf("%-12s%s\n", "exit", "Exits the rpn interactive prompt");
-    printf("%-12s%s\n", "quit", "Same as exit, quits the rpn calculator");
-    printf("%-12s%s\n", "help", "Prints this help message");
-    printf("%-12s%s\n", "dup",
+    printf("%s\n", "============================");
+    printf("%-16s%s\n", "deg",
+           "Sets the program to use degrees for angle measure");
+    printf("%-16s%s\n", "rad",
+           "Sets the program to use radian for angle measure");
+    printf("%-16s%s\n", "exit", "Exits the rpn interactive prompt");
+    printf("%-16s%s\n", "quit", "Same as exit, quits the rpn calculator");
+    printf("%-16s%s\n", "help", "Prints this help message");
+    printf("%-16s%s\n", "dup",
            "Duplicates the element at the top of the stack");
-    printf("%-12s%s\n", "peek", "Prints the value of the top of the stack");
-    printf("%-12s%s\n", "pop", "Remove the topmost element from the stack");
-    printf("%-12s%s\n", "swap", "Swaps the two topmost elements");
-    printf("%-12s%s\n", "clear", "Clears the stack");
-    // printf("%-12s%s\n", "", "");
-    // printf("%-12s%s\n", "", "");
+    printf("%-16s%s\n", "peek | print",
+           "Prints the value of the top of the stack");
+    printf("%-16s%s\n", "pop", "Remove the topmost element from the stack");
+    printf("%-16s%s\n", "swap", "Swaps the two topmost elements");
+    printf("%-16s%s\n", "mem", "Displays the memory of the calculator");
+    printf("%-16s%s\n", "sum", "Finds the sum of all elements of the stack");
+    printf("%-16s%s\n", "prod",
+           "Finds the product of all elements of the stack");
+    printf("%-16s%s\n", "clear", "Clears the stack");
+    printf("%-16s%s\n", "clrtop",
+           "Clears all elements of stack except top element");
+    printf("%-16s%s\n", "clearmem", "Clears the memory of the calculator");
+    printf("%-16s%s\n", "show_stack", "Displays stack after every calculation");
+    printf("%-16s%s\n", "no_show_stack", "Disables display of stack");
+    printf("%-16s%s\n", "debug", "Enables debug mode");
+    printf("%-16s%s\n", "no_debug", "Disables debug mode");
+    printf("%-16s%s\n", "show_errors", "Displays error (if any)");
+    printf("%-16s%s\n", "no_show_errors", "Suppress display of errors");
+    printf("%-16s%s\n", "display_prompt", "Displays the >> Before input");
+    printf("%-16s%s\n", "no_display_prompt", "Disables display of prompt(>>)");
+    printf("%-16s%s\n", "clear_screen", "Clears the screen after every input");
+    printf("%-16s%s\n", "no_clear_screen",
+           "Disables clearing screen after input");
+    printf("%-16s%s\n", "display", "Enables display of all information (except debug)\n");
+    printf("%-16s%s\n", "no_display", "Disables display of all information (except debug)\n");
+
+    printf("\n");
+    printf(
+        "Sample list of commands when this program's output is used by another "
+        "program\n");
+    printf(
+        "no_debug no_show_errors no_show_stack no_clear_screen "
+        "no_display_prompt <expression> pop\n");
+    /* printf("%-16s%s\n", "", "");
+     * printf("%-16s%s\n", "", ""); */
+    printf("\n");
+    printf("Variables\n");
+    printf("%s\n", "============================");
+    printf(
+        "This RPN calculator supports variables, you can use variables in any "
+        "expression\n");
+    printf("Variable names must be single letter long and in uppercase only\n");
+    printf("Syntax for setting a variable:\n");
+    printf("set <variable_name> = <expression>\n");
+    printf("Examples:\n");
+    printf("set A = 3 2 +\n");
+    printf("The above example sets A to 5\n");
+    printf(
+        "NOTE: If the expression part is omitted, then the topmost element of "
+        "the stack is popped and the variable is set to that value\n");
+    printf("Example:\n");
+    printf(">> 3 2\n");
+    printf(">> set A = \n");
+    printf("This sets A to 2 and 2 is removed from the stack\n");
+    printf(
+        "If the expression part is omitted and the stack is empty, the "
+        "variable will assume the value of 0\n");
+    // printf("\n");
+    // printf("%-16s%s\n", "", "");
+    // printf("%-16s%s\n", "", "");
 }
 char peekChar()
 {
@@ -159,6 +322,13 @@ char peekChar()
         return '\0';
     }
     return src_string[cp];
+}
+
+long int factorial(int n)
+{
+    int f = 1;
+    for (int j = 1; j <= n; j++) f = f * j;
+    return f;
 }
 
 void clearScreen()
@@ -174,9 +344,22 @@ void displayStack()
     printf("%s\n", "============================");
     for (int k = 0; k <= sp; k++) {
         printf("[%d: ", k);
-        printf("%.9f ", valueAt(k));
+        // printf("%.*g ", DBL_DECIMAL_DIG, valueAt(k));
+        // I am not using DBL_DECIMAL_DIG, as it prints 1.4999999... for 1.5
+        printf("%.15g ", valueAt(k));
         printf("%s", " ]\n");
     }
+}
+void displayMemory()
+{
+    // printf("%s\n", "============================");
+    printf("MEMORY: [");
+    for (int i = 0; i < 26; i++) {
+        if (variables_set[i]) {
+            printf("%c: %.15g ", alphabets[i], variable_lookup[i]);
+        }
+    }
+    printf("]\n");
 }
 
 char peekNextChar()
@@ -355,6 +538,18 @@ Token getNextToken()
             return (Token){FORWARD_SLASH, src_string, cp++, 1};
         if (peekChar() == '+') return (Token){PLUS, src_string, cp++, 1};
         if (peekChar() == '%') return (Token){MODULUS, src_string, cp++, 1};
+        if (peekChar() == '!') return (Token){EXCLAMATION, src_string, cp++, 1};
+        if (peekChar() == '=') return (Token){ASSIGNMENT, src_string, cp++, 1};
+
+        if (peekChar() == '&') return (Token){BIT_AND, src_string, cp++, 1};
+        if (peekChar() == '|') return (Token){BIT_OR, src_string, cp++, 1};
+        if (peekChar() == '~') return (Token){BIT_NOT, src_string, cp++, 1};
+        if (peekChar() == '^') return (Token){BIT_XOR, src_string, cp++, 1};
+
+        if (peekChar() == '>' && peekNextChar() == '>')
+            return (Token){BIT_RSHIFT, src_string, cp++, 1};
+        if (peekChar() == '<' && peekNextChar() == '<')
+            return (Token){BIT_LSHIFT, src_string, cp++, 1};
         if (peekChar() == '-') {
             if (isdigit(peekNextChar())) {
                 // If the next character after minus is a digit
@@ -424,6 +619,12 @@ void displayToken(Token t)
         case MODULUS:
             printf("%s", "MODULUS");
             break;
+        case EXCLAMATION:
+            printf("%s", "EXCLAMATION");
+            break;
+        case ASSIGNMENT:
+            printf("%s", "ASSIGNMENT");
+            break;
         case END_OF_FILE:
             printf("%s>\n", "EOF");
             // Returns for EOF as it is not printable
@@ -463,26 +664,31 @@ void unaryop(OPType type)
     // Function to handle functions or operators which take a single operand
     // like sin, cos, etc.
     double rhs, result = 0;
+    // Only for trigonometric functions
     if (!pop(&rhs)) {
-        printf("ERROR: Not enough operands for the given function/operator\n");
+        if (show_errors)
+            printf(
+                "ERROR: Not enough operands for the given function/operator\n");
         err_occured = 1;
         return;
     }
+    double trig_rhs =
+        (angle_measure == RADIAN) ? rhs : (3.1415926535 / 180) * rhs;
     switch (type) {
         case OP_SIN:
-            result = sin(rhs);
+            result = sin(trig_rhs);
             break;
         case OP_COS:
-            result = cos(rhs);
+            result = cos(trig_rhs);
             break;
         case OP_TAN:
-            result = tan(rhs);
+            result = tan(trig_rhs);
             break;
         case OP_EXP:
-            result = exp(rhs);
+            result = exp(trig_rhs);
             break;
         case OP_COT:
-            result = cos(rhs) / sin(rhs);
+            result = cos(trig_rhs) / sin(trig_rhs);
             break;
         case OP_LOG:
             result = log(rhs);
@@ -491,6 +697,13 @@ void unaryop(OPType type)
             result = log10(rhs);
             break;
         case OP_SQRT:
+            if (rhs < 0) {
+                if (show_errors)
+                    printf("%s\n", "ERROR: Square root of negative number");
+                err_occured = 1;
+                push(rhs);
+                return;
+            }
             result = sqrt(rhs);
             break;
         case OP_ABS:
@@ -502,13 +715,20 @@ void unaryop(OPType type)
         case OP_FLOOR:
             result = floor(rhs);
             break;
+        case OP_FACTORIAL:
+            result = (double)(factorial((int)rhs));
+            break;
+        case OP_BIT_NOT:
+            result = ~(int)rhs;
+            break;
         default:
-            printf("%s\n", "INTERNAL ERROR: Unknown unary operator");
+            if (show_errors)
+                printf("%s\n", "INTERNAL ERROR: Unknown unary operator");
             err_occured = 1;
             return;
     }
     if (!push(result)) {
-        printf("ERROR: %s\n", "Stack is full");
+        if (show_errors) printf("ERROR: %s\n", "Stack is full");
         err_occured = 1;
         return;
     }
@@ -520,7 +740,8 @@ void binaryfunc(OPType type)
     int rhs_success = 0;
 
     if (!pop(&rhs)) {
-        printf("ERROR: Not enough operands for function taking 2 args\n");
+        if (show_errors)
+            printf("ERROR: Not enough operands for function taking 2 args\n");
         err_occured = 1;
         return;
     }
@@ -528,7 +749,8 @@ void binaryfunc(OPType type)
     rhs_success = 1;
     if (!pop(&lhs)) {
         if (rhs_success) push(rhs);
-        printf("ERROR: Not enough operands for function taking 2 args\n");
+        if (show_errors)
+            printf("ERROR: Not enough operands for function taking 2 args\n");
         err_occured = 1;
         return;
     }
@@ -536,8 +758,14 @@ void binaryfunc(OPType type)
     if (type == OP_POW) {
         result = pow(lhs, rhs);
     }
+    if (type == OP_MOD) {
+        result = fmod(lhs, rhs);
+    }
+    if (type == OP_LOGN) {
+        result = log(lhs) / log(rhs);
+    }
     if (!push(result)) {
-        printf("ERROR: %s\n", "Stack is full, Internal error");
+        if (show_errors) printf("ERROR: %s\n", "Stack is full, Internal error");
         err_occured = 1;
         return;
     }
@@ -550,7 +778,8 @@ void binop(char op)
     int rhs_success = 0;
 
     if (!pop(&rhs)) {
-        printf("ERROR: Not enough operands for operator '%c' (rhs)\n", op);
+        if (show_errors)
+            printf("ERROR: Not enough operands for operator '%c' (rhs)\n", op);
         err_occured = 1;
         return;
     }
@@ -562,7 +791,8 @@ void binop(char op)
         // But it errors here as there is no lhs
         // So in this case, we have to push back that 32 (or whatever number)
         if (rhs_success) push(rhs);
-        printf("ERROR: Not enough operands for operator '%c' (lhs)\n", op);
+        if (show_errors)
+            printf("ERROR: Not enough operands for operator '%c' (lhs)\n", op);
         err_occured = 1;
         return;
     }
@@ -577,9 +807,25 @@ void binop(char op)
         case '*':
             result = lhs * rhs;
             break;
+        // For these bitwise operators, the double is converted to int first
+        case '&':
+            result = (int)lhs & (int)rhs;
+            break;
+        case '|':
+            result = (int)lhs | (int)rhs;
+            break;
+        case '^':
+            result = (int)lhs ^ (int)rhs;
+            break;
+        case 'R':
+            result = (int)lhs >> (int)rhs;
+            break;
+        case 'L':
+            result = (int)lhs << (int)rhs;
+            break;
         case '/':
             if (fabs(rhs) <= 1e-50) {
-                printf("%s\n", "ERROR: Division by zero");
+                if (show_errors) printf("%s\n", "ERROR: Division by zero");
                 err_occured = 1;
                 return;
             }
@@ -589,7 +835,7 @@ void binop(char op)
             break;
         case '%':
             if (fabs(rhs) <= 1e-50) {
-                printf("%s\n", "ERROR: Modulus by zero");
+                if (show_errors) printf("%s\n", "ERROR: Modulus by zero");
                 err_occured = 1;
                 return;
             }
@@ -601,12 +847,12 @@ void binop(char op)
             break;
 
         default:
-            printf("ERROR: Unknown operator (%c) \n", op);
+            if (show_errors) printf("ERROR: Unknown operator (%c) \n", op);
             err_occured = 1;
             break;
     }
     if (!push(result)) {
-        printf("ERROR: %s\n", "Stack is full, Internal error");
+        if (show_errors) printf("ERROR: %s\n", "Stack is full, Internal error");
         err_occured = 1;
         return;
     }
@@ -628,8 +874,9 @@ void calculate()
         }
         t = getNextToken();
         if (t.type == UNKNOWN) {
-            printf("ERROR: Uknown character (%c) at index %d in input\n",
-                   t.src[t.index], t.index);
+            if (show_errors)
+                printf("ERROR: Uknown character (%c) at index %d in input\n",
+                       t.src[t.index], t.index);
             err_occured = 1;
             return;
         }
@@ -643,12 +890,19 @@ void calculate()
                     }
                     buffer[i] = '\0';
                     if (!push(atof(buffer))) {
-                        printf("ERROR: %s\n", "Stack is full, Internal error");
+                        if (show_errors)
+                            printf("ERROR: %s\n",
+                                   "Stack is full, Internal error");
                         err_occured = 1;
                         return;
                     }
                     break;
                 case IDENTIFIER:
+                    /* I removed all returns from the if statements and
+                     * converted the if statements to else if. Using the return
+                     * statements, I could not evaluate 2 sqrt floor Or the like
+                     * of functions
+                     */
                     // Copy to temporary buffer to do manipulations
                     for (i = 0; i < t.length; i++) {
                         assert((t.index + i) < (BUFFER_SIZE - 1));
@@ -660,61 +914,111 @@ void calculate()
                     // Handle some variables such as e and pi
                     if (strcmp(buffer, "pi") == 0) {
                         if (!push(3.14159265358)) {
-                            printf("ERROR: %s\n", "Stack is full");
+                            if (show_errors)
+                                printf("ERROR: %s\n", "Stack is full");
                             err_occured = 1;
                             return;
                         }
                     }
-                    if (strcmp(buffer, "e") == 0) {
+                    else if (strcmp(buffer, "e") == 0) {
                         if (!push(2.71828182845))
 
                         {
-                            printf("ERROR: %s\n", "Stack is full");
+                            if (show_errors)
+                                printf("ERROR: %s\n", "Stack is full");
                             err_occured = 1;
                             return;
                         }
                     }
 
                     // Handle some commands
-                    if (strcmp(buffer, "exit") == 0 ||
-                        strcmp(buffer, "quit") == 0) {
+                    else if (strcmp(buffer, "exit") == 0 ||
+                             strcmp(buffer, "quit") == 0) {
                         running = 0;
                     }
-                    if (strcmp(buffer, "help") == 0) {
+                    else if (strcmp(buffer, "help") == 0) {
                         printHelpMessage();
                     }
-                    if (strcmp(buffer, "dup") == 0) {
+                    else if (strcmp(buffer, "dup") == 0) {
                         if (!peek(&var)) {
-                            printf(
-                                "%s\n",
-                                "ERROR: Unable to duplicate element as stack "
-                                "is empty");
+                            if (show_errors)
+                                printf("%s\n",
+                                       "ERROR: Unable to duplicate element as "
+                                       "stack "
+                                       "is empty");
                             err_occured = 1;
                             return;
                         }
                         if (!push(var)) {
-                            printf("%s\n",
-                                   "ERROR: Unable to duplicate element as "
-                                   "stack is full");
+                            if (show_errors)
+                                printf("%s\n",
+                                       "ERROR: Unable to duplicate element as "
+                                       "stack is full");
                             err_occured = 1;
                             return;
                         }
                     }
-                    if (strcmp(buffer, "peek") == 0) {
+                    else if (strcmp(buffer, "peek") == 0 ||
+                             strcmp(buffer, "print") == 0) {
                         peek(&var);
-                        printf("%f\n", var);
+                        printf("%.15g\n", var);
                     }
-                    if (strcmp(buffer, "pop") == 0) {
+                    else if (strcmp(buffer, "pop") == 0) {
                         if (!pop(&var)) {
-                            printf("%s\n",
-                                   "ERROR: Unable to pop element as "
-                                   "stack is empty");
+                            if (show_errors)
+                                printf("%s\n",
+                                       "ERROR: Unable to pop element as "
+                                       "stack is empty");
                             err_occured = 1;
                             return;
                         }
-                        printf("%f\n", var);
+                        printf("%.15g\n", var);
                     }
-                    if (strcmp(buffer, "swap") == 0) {
+                    else if (strcmp(buffer, "rad") == 0) {
+                        angle_measure = RADIAN;
+                    }
+                    else if (strcmp(buffer, "deg") == 0) {
+                        angle_measure = DEGREE;
+                    }
+                    else if (strcmp(buffer, "show_stack") == 0) {
+                        stack_shown = 1;
+                    }
+                    else if (strcmp(buffer, "no_show_stack") == 0) {
+                        stack_shown = 0;
+                    }
+                    else if (strcmp(buffer, "clear_screen") == 0) {
+                        clear_screen = 1;
+                    }
+                    else if (strcmp(buffer, "no_clear_screen") == 0) {
+                        clear_screen = 0;
+                    }
+                    else if (strcmp(buffer, "display_prompt") == 0) {
+                        display_prompt = 1;
+                    }
+                    else if (strcmp(buffer, "no_display_prompt") == 0) {
+                        display_prompt = 0;
+                    }
+                    else if (strcmp(buffer, "debug") == 0) {
+                        TOKEN_DEBUG_ENABLED = 1;
+                    }
+                    else if (strcmp(buffer, "no_debug") == 0) {
+                        TOKEN_DEBUG_ENABLED = 0;
+                    }
+                    else if (strcmp(buffer, "show_errors") == 0) {
+                        show_errors = 1;
+                    }
+                    else if (strcmp(buffer, "no_show_errors") == 0) {
+                        show_errors = 0;
+                    }
+                    else if (strcmp(buffer, "display") == 0) {
+                        // Enables display of everything
+                        enableDisplay();
+                    }
+                    else if (strcmp(buffer, "no_display") == 0) {
+                        disableDisplay();
+                    }
+
+                    else if (strcmp(buffer, "swap") == 0) {
                         // Stack: a b c d e f
                         // v1 = f
                         // v2 = e
@@ -724,17 +1028,19 @@ void calculate()
                         double v1, v2;
                         int v1_success = 0;
                         if (!pop(&v1)) {
-                            printf("%s\n",
-                                   "ERROR: Unable to swap as "
-                                   "there are not enough elements");
+                            if (show_errors)
+                                printf("%s\n",
+                                       "ERROR: Unable to swap as "
+                                       "there are not enough elements");
                             err_occured = 1;
                             return;
                         }
                         v1_success = 1;
                         if (!pop(&v2)) {
-                            printf("%s\n",
-                                   "ERROR: Unable to swap as "
-                                   "there are not enough elements");
+                            if (show_errors)
+                                printf("%s\n",
+                                       "ERROR: Unable to swap as "
+                                       "there are not enough elements");
                             err_occured = 1;
                             if (v1_success) {
                                 // One element has already been popped out.
@@ -748,47 +1054,197 @@ void calculate()
                         push(v1);
                         push(v2);
                     }
-                    if (strcmp(buffer, "clear") == 0) {
+                    else if (strcmp(buffer, "clear") == 0) {
                         sp = -1;
+                    }
+                    else if (strcmp(buffer, "mem") == 0) {
+                        displayMemory();
+                    }
+                    else if (strcmp(buffer, "clearmem") == 0) {
+                        for (int j = 0; j < 26; j++) {
+                            variable_lookup[j] = 0;  // Might not be necessary
+                            variables_set[j] = 0;
+                        }
                     }
 
                     // Handle math functions
-                    if (strcmp(buffer, "sin") == 0) unaryop(OP_SIN);
-                    if (strcmp(buffer, "cos") == 0) unaryop(OP_COS);
-                    if (strcmp(buffer, "tan") == 0) unaryop(OP_TAN);
-                    if (strcmp(buffer, "cot") == 0) unaryop(OP_COT);
-                    if (strcmp(buffer, "exp") == 0) unaryop(OP_EXP);
+                    else if (strcmp(buffer, "sin") == 0) {
+                        unaryop(OP_SIN);
+                    }
+                    else if (strcmp(buffer, "cos") == 0) {
+                        unaryop(OP_COS);
+                    }
+                    else if (strcmp(buffer, "tan") == 0) {
+                        unaryop(OP_TAN);
+                    }
+                    else if (strcmp(buffer, "cot") == 0) {
+                        unaryop(OP_COT);
+                    }
+                    else if (strcmp(buffer, "exp") == 0) {
+                        unaryop(OP_EXP);
+                    }
 
-                    if (strcmp(buffer, "log") == 0) unaryop(OP_LOG);
-                    if (strcmp(buffer, "log10") == 0) unaryop(OP_LOG10);
-                    if (strcmp(buffer, "abs") == 0) unaryop(OP_ABS);
-                    if (strcmp(buffer, "ceil") == 0) unaryop(OP_CEIL);
-                    if (strcmp(buffer, "floor") == 0) unaryop(OP_FLOOR);
-                    if (strcmp(buffer, "sqrt") == 0) unaryop(OP_SQRT);
-                    if (strcmp(buffer, "pow") == 0) binaryfunc(OP_POW);
+                    else if (strcmp(buffer, "log") == 0) {
+                        unaryop(OP_LOG);
+                    }
+                    else if (strcmp(buffer, "log10") == 0) {
+                        unaryop(OP_LOG10);
+                    }
+                    else if (strcmp(buffer, "abs") == 0) {
+                        unaryop(OP_ABS);
+                    }
+                    else if (strcmp(buffer, "ceil") == 0) {
+                        unaryop(OP_CEIL);
+                    }
+                    else if (strcmp(buffer, "floor") == 0) {
+                        unaryop(OP_FLOOR);
+                    }
+                    else if (strcmp(buffer, "sqrt") == 0) {
+                        unaryop(OP_SQRT);
+                    }
+                    else if (strcmp(buffer, "logn") == 0) {
+                        binaryfunc(OP_LOGN);
+                    }
+                    else if (strcmp(buffer, "mod") == 0) {
+                        binaryfunc(OP_MOD);
+                    }
+                    else if (strcmp(buffer, "pow") == 0) {
+                        binaryfunc(OP_POW);
+                    }
+                    else if (strcmp(buffer, "sum") == 0) {
+                        double result = 0;
+                        for (int k = 0; k <= sp; k++) {
+                            result += valueAt(k);
+                        }
+                        if (!push(result)) {
+                            if (show_errors)
+                                printf(
+                                    "ERROR: Can't find sum of numbers because "
+                                    "stack is full\n");
+                            err_occured = 1;
+                            return;
+                        }
+                    }
+                    else if (strcmp(buffer, "prod") == 0) {
+                        double result = 1;
+                        for (int k = 0; k <= sp; k++) {
+                            result *= valueAt(k);
+                        }
+                        if (!push(result)) {
+                            if (show_errors)
+                                printf(
+                                    "ERROR: Can't find product of numbers "
+                                    "because "
+                                    "stack is full\n");
+                            err_occured = 1;
+                            return;
+                        }
+                    }
+                    else if (strcmp(buffer, "clrtop") == 0) {
+                        // Clears all elements of stack except top
+                        if (sp > 0) {
+                            double tmp = valueAt(sp);
+                            sp = -1;
+                            push(tmp);
+                        }
+                        else {
+                            printf(
+                                "WARN: clrtop failed as there are no elements "
+                                "in the stack\n");
+                        }
+                    }
+                    {
+                        // Finds the root of a quadratic
+                    }
 
-                    // Handle single letter variables
-                    // Only uppercase variables are supported as some math
-                    // constants are in lowercase
-                    /*
-                    if (t.length == 1) {
-                        if (t.src[t.index] >= 'a' && t.src[t.index] <= 'z') {
-                            if (!push(variable_lookup[(int)(t.src[t.index] -
-                    'a')])) { printf( "ERROR: Stack is full, unable to "
-                                    "dereference variable\n");
+                    // Handle set command
+                    else if (strcmp(buffer, "set") == 0) {
+                        // Example:
+                        // set a = <expression>
+                        // set a = 3 2 +  ----> Sets a to 5
+                        // Grammer:
+                        // set "single letter variable name" = "expression"
+                        Token t2 = getNextToken();
+                        Token t3;
+                        if (t2.type == IDENTIFIER && t2.length == 1 &&
+                            isupper(t2.src[t2.index])) {
+                            t3 = getNextToken();
+                            if (t3.type == ASSIGNMENT) {
+                                calculate();
+                                if (!err_occured) {
+                                    double vars = 0;
+                                    char ch = t2.src[t2.index];
+                                    assert((ch - 'A') >= 0);
+                                    assert((ch - 'A') < 26);
+
+                                    pop(&vars);
+                                    printf("Set the value of %c to %.15g\n", ch,
+                                           vars);
+                                    variable_lookup[ch - 'A'] = vars;
+                                    variables_set[ch - 'A'] = 1;
+                                }
+                                else {
+                                    if (show_errors)
+                                        printf(
+                                            "ERROR: Error occured on rhs "
+                                            "expression\n");
+                                }
+                            }
+                            else {
+                                if (show_errors)
+                                    printf("%s\n",
+                                           "ERROR~~: Invalid use of set, no =");
+                                cp = t2.index;
                                 err_occured = 1;
                                 return;
                             }
                         }
                         else {
-                            printf(
-                                "ERROR: Only lowercase variables are "
-                                "supported\n");
+                            if (show_errors)
+                                printf(
+                                    "%s\n",
+                                    "ERROR~~: Invalid use of set, no variable "
+                                    "after set command, or variable is not "
+                                    "single uppercase letter");
+                            cp = t2.index;
                             err_occured = 1;
                             return;
                         }
                     }
-                    else if(t.length > 1){
+
+                    // Handle single letter variables
+                    // Only uppercase variables are supported as some math
+                    // constants are in lowercase
+                    else if (t.length == 1) {
+                        if (t.src[t.index] >= 'A' && t.src[t.index] <= 'Z') {
+                            int index = (int)(t.src[t.index] - 'A');
+                            assert(index >= 0 && index < 26);
+                            if (!variables_set[index]) {
+                                if (show_errors)
+                                    printf("ERROR: Variable %c not set\n",
+                                           t.src[t.index]);
+                                err_occured = 1;
+                                return;
+                            }
+                            if (!push(variable_lookup[index])) {
+                                if (show_errors)
+                                    printf(
+                                        "ERROR: Stack is full, unable to "
+                                        "dereference variable\n");
+                                err_occured = 1;
+                                return;
+                            }
+                        }
+                        else {
+                            if (show_errors)
+                                printf(
+                                    "ERROR: Only uppercase variables are "
+                                    "supported\n");
+                            err_occured = 1;
+                            return;
+                        }
+                    }
+                    else {
                         err_occured = 1;
                         printf("%s%s\n",
                                "Error: Unknown identifier or function - ",
@@ -800,7 +1256,6 @@ void calculate()
                                "character variables are supported");
                         return;
                     }
-                    */
                     break;
 
                 case PLUS:
@@ -823,6 +1278,29 @@ void calculate()
                     binop('%');
                     break;
 
+                case EXCLAMATION:
+                    unaryop(OP_FACTORIAL);
+                    break;
+
+                case BIT_LSHIFT:
+                    binop('L');
+                    break;
+                case BIT_RSHIFT:
+                    binop('R');
+                    break;
+                case BIT_AND:
+                    binop('&');
+                    break;
+                case BIT_OR:
+                    binop('|');
+                    break;
+                case BIT_NOT:
+                    unaryop(OP_BIT_NOT);
+                    break;
+                case BIT_XOR:
+                    binop('^');
+                    break;
+
                 case NEWLINE:
                 case END_OF_FILE:
                     break;
@@ -835,7 +1313,7 @@ void calculate()
     } while (t.type != END_OF_FILE);
 }
 
-int getline(char buffer_[], int bufferSize)
+int getline_(char buffer_[], int bufferSize)
 {
     int bufferIndex = 0, ch;
     while (bufferIndex < (bufferSize - 1)) {
@@ -851,7 +1329,7 @@ int getline(char buffer_[], int bufferSize)
 int main()
 {
     int length;
-    clearScreen();
+    if (clear_screen) clearScreen();
     printf("%s %s\n",
            "Welcome to Shankar's RPN (Reverse polish notation) Calculator",
            VERSION);
@@ -862,19 +1340,29 @@ int main()
         "expression through standard input\n");
     printf("%s\n", "Type @ and press enter to toggle debug mode");
     printf("Type \"help\" and press enter to get help\n");
-    printf("%s", ">>");
-    while ((length = getline(src_string, 512))) {
-        clearScreen();
+    if (display_prompt) printf("%s", ">>");
+    while ((length = getline_(src_string, 512))) {
+        if (clear_screen) clearScreen();
         calculate();
         if (!running) {
-            clearScreen();
-            displayStack();
+            if (clear_screen) clearScreen();
+            if (stack_shown) displayStack();
             break;
         }
-        displayStack();
+        if (stack_shown) displayStack();
         // reset();
         cp = 0;
         err_occured = 0;
-        printf("%s", ">>");
+        if (display_prompt) printf("%s", ">>");
     }
 }
+// Sample formulae
+// Formula to find the roots of a quadratic equation (set A, B, and C before)
+// B -1 * B 2 pow 4 A * C * - sqrt + 2 A * /
+// B -1 * B 2 pow 4 A * C * + sqrt + 2 A * /
+//
+// Example:
+// set A = 1
+// set B = -2
+// set C = -3
+//

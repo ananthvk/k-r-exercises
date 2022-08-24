@@ -10,6 +10,7 @@ int main()
     printf("short : %d to %d\n", SHRT_MIN, SHRT_MAX);
     printf("int   : %d to %d\n", INT_MIN, INT_MAX);
     printf("long  : %ld to %ld\n", LONG_MIN, LONG_MAX);
+    printf("long long int : %lld to %lld\n", LLONG_MIN, LLONG_MAX);
 
     printf("float : %f to %f\n", FLT_MIN, FLT_MAX);
     printf("double: %f to %f\n", DBL_MIN, DBL_MAX);

@@ -63,6 +63,11 @@ int main()
     {
         if(i % 4 == 0)
             printf("*****\n");
-        printf("%x\n", (unsigned char)arr_inter[i]);
+        printf("%x", (unsigned char)arr_inter[i]);
+        printf(" [%c]\n", arr_inter[i]);
     }
+
+    printf("%s\n", arr_inter);
+    // Frees everything
+    free_buffer(buff);
 }

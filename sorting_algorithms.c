@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #define SWAP(x, y, t) \
     {                 \
         t tmp = x;    \
@@ -7,29 +8,46 @@
         y = tmp;      \
     }
 
+#define PRINT_SPACES(n)                                                       \
+    for (int z = 0; z < n; z++) putchar((z % INDENT_WIDTH == 0) ? '|' : ' '); \
+    putchar('|');                                                             \
+    putchar('-')
+
+#define INDENT_WIDTH 3
+int VISUAL = 0;
+int OUTPUT = 0;
+
 void displayArray(int *arr, size_t n);
 
-void ssort(int *arr, size_t n)
+size_t ssort(int *arr, size_t n)
 {
     // Performs selection sort on the input array
+    // Returns an integer representing the number of times the loop has run
     size_t smallest;
+    size_t run = 0;
     for (size_t i = 0; i < n; i++) {
-        printf("Pass %zu: ", i);
-        displayArray(arr, n);
+        if (VISUAL) {
+            printf("Pass %zu: ", i);
+            displayArray(arr, n);
+        }
 
         smallest = i;
         // Find the smallest element in the array
         for (size_t j = i + 1; j < n; j++) {
+            ++run;
             if (arr[j] < arr[smallest]) smallest = j;
         }
         // Swap the element at ith position with the smallest element
         int tmp = arr[i];
         arr[i] = arr[smallest];
         arr[smallest] = tmp;
-        printf("        ");
-        displayArray(arr, n);
-        printf("====================\n");
+        if (VISUAL) {
+            printf("        ");
+            displayArray(arr, n);
+            printf("====================\n");
+        }
     }
+    return run;
 }
 
 void bubble_sort(int *arr, size_t n)
@@ -48,14 +66,18 @@ void bubble_sort(int *arr, size_t n)
     }
 }
 
-void merge(int *aux, int *arr1, size_t n1, int *arr2, size_t n2)
+size_t merge(int *aux, int *arr1, size_t n1, int *arr2, size_t n2)
 {
     // Merges elements from two arrays into an auxillary array
     // in a sorted manner
     // Find the pointer to last element of both arrays
+    // Returns the number of times the loop has run
+    size_t run = 0;
+
     int *arr1_end = arr1 + n1 - 1;
     int *arr2_end = arr2 + n2 - 1;
     while ((arr1 <= arr1_end) && (arr2 <= arr2_end)) {
+        ++run;
         // Put the lower of the two element in the aux array first
         if (*arr1 < *arr2) {
             // Only increase the pointer in the first array
@@ -66,38 +88,51 @@ void merge(int *aux, int *arr1, size_t n1, int *arr2, size_t n2)
         }
     }
     while (arr1 <= arr1_end) {
+        ++run;
         // Copy remaining elements
         *aux++ = *arr1++;
     }
     while (arr2 <= arr2_end) {
+        ++run;
         // Copy remaining elements
         *aux++ = *arr2++;
     }
+    return run;
 }
-void merge_sort(int *arr, size_t n, int *aux)
+size_t merge_sort(int *arr, size_t n, int *aux, int depth)
 {
+    // depth parameter for printing appropriate number of spaces
+    size_t run = 0;
     if (n < 1) {
         printf("%s\n", "SERIOUS ERROR, n < 1");
         exit(-1);
     }
     // Only one element, it is already sorted
-    if (n == 1) return;
+    if (n == 1) return 1;
 
     size_t l_i = n / 2;
     size_t r_i = n - (n / 2);
-
+    if (VISUAL) {
+        PRINT_SPACES(depth * INDENT_WIDTH);
+        displayArray(arr, n);
+    }
 
     // merge sort the left half
-    merge_sort(arr, l_i, aux);
+    run += merge_sort(arr, l_i, aux, depth + 1);
     // merge sort the right half
-    merge_sort(arr + l_i, r_i, aux);
+    run += merge_sort(arr + l_i, r_i, aux, depth + 1);
 
     // merge the two halves together
-    merge(aux, arr, l_i, arr + l_i, r_i);
-    for(size_t i = 0; i < n; i++)
-        *(arr+i) = *(aux+i);
+    run += merge(aux, arr, l_i, arr + l_i, r_i);
+    for (size_t i = 0; i < n; i++) *(arr + i) = *(aux + i);
     // displayArray(aux, n);
-    displayArray(arr, n);
+    if (VISUAL) {
+        PRINT_SPACES(depth * INDENT_WIDTH);
+        putchar('-');
+        putchar(' ');
+        displayArray(arr, n);
+    }
+    return run;
 }
 void displayArray(int *arr, size_t n)
 {
@@ -110,14 +145,49 @@ void displayArray(int *arr, size_t n)
     printf("\n");
 }
 
-#define SIZE 13
-int main()
+void get_integers(int *buff, size_t n)
+{
+    // Get n integers from stdin
+    // No input checking done here
+    for (size_t i = 0; i < n; i++) {
+        // printf("Enter the %zu number: ", i);
+        scanf("%d", buff++);
+    }
+}
+
+#define SIZE 1000
+int main(int argc, char *argv[])
 {
     // Array of SIZE numbers
-    int arr[SIZE] = {1, 11, 7, 8, 2, 0, 3, 16, 4, 9, 3, 5, 12};
-    int aux[SIZE];
-    displayArray(arr, SIZE);
-    // ssort(arr, SIZE);
-    merge_sort(arr, SIZE, aux);
-    displayArray(arr, SIZE);
+    // int arr[SIZE] = {1, 11, 7, 8, 2, 0, 3, 16, 4, 9, 3, 5, 12};
+    // displayArray(arr, SIZE);
+    char *str;
+    while (--argc > 0) {
+        str = *++argv;
+        if(strcmp(str, "-v") == 0)
+            VISUAL = 1;
+        if(strcmp(str, "-o") == 0)
+            OUTPUT = 1;
+    }
+    int arr[SIZE] = {0};
+    int arr2[SIZE] = {0};
+
+    int aux[SIZE] = {0};
+    size_t n = 0;
+    printf("How many numbers? : ");
+    scanf("%zu", &n);
+    printf("\n");
+    get_integers(arr, n);
+
+    memcpy(arr2, arr, n * sizeof(int));
+
+    printf("\n");
+    printf("========== MERGE SORT ==========\n");
+    printf("%zu\n", merge_sort(arr, n, aux, 0));
+    if(OUTPUT)
+        displayArray(arr, n);
+    printf("========== SELECTION SORT ==========\n");
+    printf("%zu\n", ssort(arr, n));
+    if(OUTPUT)
+        displayArray(arr, n);
 }

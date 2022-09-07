@@ -14,6 +14,7 @@
     putchar('-')
 
 #define INDENT_WIDTH 3
+#define SIZE 10*1000*1000 // 10 MB of storage
 int VISUAL = 0;
 int OUTPUT = 0;
 
@@ -155,7 +156,6 @@ void get_integers(int *buff, size_t n)
     }
 }
 
-#define SIZE 1000
 int main(int argc, char *argv[])
 {
     // Array of SIZE numbers
@@ -169,10 +169,15 @@ int main(int argc, char *argv[])
         if(strcmp(str, "-o") == 0)
             OUTPUT = 1;
     }
-    int arr[SIZE] = {0};
-    int arr2[SIZE] = {0};
 
-    int aux[SIZE] = {0};
+    // int arr[SIZE] = {0};
+    // int arr2[SIZE] = {0};
+    // int aux[SIZE] = {0};
+
+    int *arr = (int*)malloc(SIZE*sizeof(int)); 
+    int *arr2 = (int*)malloc(SIZE*sizeof(int)); 
+    int *aux = (int*)malloc(SIZE*sizeof(int)); 
+
     size_t n = 0;
     printf("How many numbers? : ");
     scanf("%zu", &n);
@@ -191,3 +196,25 @@ int main(int argc, char *argv[])
     if(OUTPUT)
         displayArray(arr, n);
 }
+// TEST
+// $ gen_sort_num.py 1000 100000 | sorting_algorithms.exe
+// How many numbers? :
+// ========== MERGE SORT ==========
+// 1768928
+// ========== SELECTION SORT ==========
+// 4999950000
+//
+// On calculating n*log to base 2 n, for merge sort the value comes out to
+//      1 660 964
+// The actual run(excluding thecopying time)
+//      1 768 928    
+//
+// On calculating n^2, for selection sort the value is
+//      10^5, or 10 billion
+// The actual run value is 
+//      4 999 950 000 
+//      Which is close to 5 billion
+// Finding n*(n-1)/2, which is the predicted running steps of this algorithm
+//      4 999 950 000
+// 
+// The base of log as calculated by me for various inputs on my machine comes out to 1.9334

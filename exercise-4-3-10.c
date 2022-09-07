@@ -274,8 +274,10 @@ void printHelpMessage()
     printf("%-16s%s\n", "clear_screen", "Clears the screen after every input");
     printf("%-16s%s\n", "no_clear_screen",
            "Disables clearing screen after input");
-    printf("%-16s%s\n", "display", "Enables display of all information (except debug)\n");
-    printf("%-16s%s\n", "no_display", "Disables display of all information (except debug)\n");
+    printf("%-16s%s\n", "display",
+           "Enables display of all information (except debug)\n");
+    printf("%-16s%s\n", "no_display",
+           "Disables display of all information (except debug)\n");
 
     printf("\n");
     printf(
@@ -1153,12 +1155,10 @@ void calculate()
                                 "in the stack\n");
                         }
                     }
-                    {
-                        // Finds the root of a quadratic
-                    }
 
                     // Handle set command
-                    else if (strcmp(buffer, "set") == 0) {
+                    else if (strcmp(buffer, "set") == 0)
+                    {
                         // Example:
                         // set a = <expression>
                         // set a = 3 2 +  ----> Sets a to 5
@@ -1215,7 +1215,8 @@ void calculate()
                     // Handle single letter variables
                     // Only uppercase variables are supported as some math
                     // constants are in lowercase
-                    else if (t.length == 1) {
+                    else if (t.length == 1)
+                    {
                         if (t.src[t.index] >= 'A' && t.src[t.index] <= 'Z') {
                             int index = (int)(t.src[t.index] - 'A');
                             assert(index >= 0 && index < 26);
@@ -1244,7 +1245,8 @@ void calculate()
                             return;
                         }
                     }
-                    else {
+                    else
+                    {
                         err_occured = 1;
                         printf("%s%s\n",
                                "Error: Unknown identifier or function - ",
@@ -1325,6 +1327,7 @@ int getline_(char buffer_[], int bufferSize)
     buffer_[bufferIndex] = '\0';
     return bufferIndex;
 }
+
 
 int main()
 {

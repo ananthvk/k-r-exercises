@@ -2,6 +2,8 @@
 /*
  * My implementation of Decomment uses a state machine.
  */
+
+
 enum State {
     SEARCH,
     SEMI_COMMENT,

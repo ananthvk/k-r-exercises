@@ -20,11 +20,14 @@
  *  Set used_space = 0
  *  While EOF is not yet reached
  *      Read (FOLD_WIDTH - used_space) characters from the input or till a
- * newline, whichever is smaller into buffer. If the last character of the
- * buffer(string) is a newline Print the buffer Set used_space = 0 Else Find the
- * index of the last space, tab or hyphen (break character) from then end. If no
- * space was found Print the buffer completely Print a newline Set used_space =
- * 0 Else Print the buffer till the last break character (excluding the break
+ * newline, whichever is smaller into buffer.
+ * If the last character of the buffer(string) is a newline
+ *      Print the buffer
+ *      Set used_space = 0
+ *  Else Find the index of the last space, tab or hyphen (break character) from
+ * then end. If no space was found Print the buffer completely Print a newline
+ *      Set used_space = 0
+ *  Else Print the buffer till the last break character (excluding the break
  * character). Print a newline Print characters after the last break character
  * till the end of the buffer. Set used_space = Number of characters after the
  * last break character.
@@ -40,6 +43,7 @@ int getline(char buffer[], int bufferSize)
         ch = getchar();
         if (ch == EOF) break;
         buffer[bufferIndex] = ch;
+
         bufferIndex++;
         if (ch == '\n') break;
     }

@@ -1,7 +1,6 @@
 #include <stdio.h>
 // Max level of nesting is 5000
 #define MAX_STACK_SIZE 5000
-
 enum State {
     PROGRAM,
     STRING,

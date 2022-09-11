@@ -60,14 +60,24 @@ set from the command line.*/
 #include<string.h>
 int n;
 
+typedef struct SubNode SubNode;
 typedef struct Node
 {
     char *word;
     struct Node *left;
     struct Node *right;
-    struct Node *subtree_left;
-    struct Node *subtree_right;
+    // struct Node *subtree_left;
+    // struct Node *subtree_right;
+    SubNode *sub_left;
+    SubNode *sub_right;
 } Node;
+
+typedef struct SubNode
+{
+    char *word;
+    struct SubNode *left;
+    struct SubNode *right;
+} SubNode;
 
 int are_first_n_chars_identical(const char *s, const char *t, int n_chars)
 {
@@ -81,14 +91,14 @@ int are_first_n_chars_identical(const char *s, const char *t, int n_chars)
     return 1;
 }
 
-Node *add_subtree(Node *node, char *word)
+Node *add_subtree(SubNode *node, char *word)
 {
     int expr;
     // Adds the word to the tree and returns the node which was passed
     // or if node is null, it returns the new node.
     if(node == NULL)
     {
-        node = malloc(sizeof(Node));
+        node = malloc(sizeof(SubNode));
         if(!node)
         {
             printf("Error while creating subtree node ! memory error\n");
@@ -102,8 +112,6 @@ Node *add_subtree(Node *node, char *word)
         }
         node->right = NULL;
         node->left = NULL;
-        node->subtree_right = NULL;
-        node->subtree_left = NULL;
         strcpy(node->word, word);
         return node;
     }
@@ -111,12 +119,12 @@ Node *add_subtree(Node *node, char *word)
     else if((expr = strcmp(word, node->word)) > 0)
     {
         // Check if the word is bigger than that of the subtree node
-        node->subtree_right = add_subtree(node->subtree_right, word);
+        node->right = add_subtree(node->right, word);
     }
     else if(expr < 0)
     {
         // Check if the word is smaller than that of the subtree node
-        node->subtree_left = add_subtree(node->subtree_right, word);
+        node->left = add_subtree(node->left, word);
     }
     // No need to check if the word is same as that of the node
     return node;
@@ -143,8 +151,8 @@ Node *add_tree(Node *node, char *word)
         }
         node->right = NULL;
         node->left = NULL;
-        node->subtree_right = NULL;
-        node->subtree_left = NULL;
+        node->sub_right = NULL;
+        node->sub_left = NULL;
         strcpy(node->word, word);
         return node;
     }
@@ -154,11 +162,11 @@ Node *add_tree(Node *node, char *word)
         // Check if the first n characters of the word are same as that of the node
         if(strcmp(word, node->word) > 0)
         {
-            node->subtree_right = add_subtree(node->subtree_right, word);
+            node->sub_right = add_subtree(node->sub_right, word);
         }
         if(strcmp(word, node->word) < 0)
         {
-            node->subtree_left = add_subtree(node->subtree_left, word);
+            node->sub_left = add_subtree(node->sub_left, word);
         }
     }
     else if((expr = strcmp(word, node->word)) > 0)
@@ -175,65 +183,42 @@ Node *add_tree(Node *node, char *word)
     // No need to check if the word is same as that of the node
     return node;
 }
-/*
-Node *add_tree(Node *root, char *word)
-{
-    int val;
-    if (root == NULL) {
-        root = malloc(sizeof(Node));
-        if (!root) {
-            printf("Couldn't allocate memory for node");
-            // May be due to some memory issue
-            return NULL;
-        }
-        // +1 for storing the null character
-        root->word = malloc(sizeof(char) * (strlen(word) + 1));
-        if (!root) {
-            printf("Couldn't allocate memory for word in node");
-            return NULL;
-        }
-        strcpy(root->word, word);
-        root->left = NULL;
-        root->right = NULL;
-    }
-
-    else if(are_first_n_chars_identical(root->word, word, n))
-    {
-        // Check if the first n characters of the word are same as that of the node
-        printf("Contains: %s\n",word);
-    }
-    // if (!root->word) {
-    //    // The node does not have a valid word
-    //    return NULL;
-    //}
-    else if ((val = strcmp(word, root->word)) > 0) {
-        // The new word is greater than the old word
-        root->right = add_tree(root->right, word);
-    }
-    else if (val < 0) {
-        // The new word is smaller than the old word
-        root->left = add_tree(root->left, word);
-    }
-    return root;
-}
-*/
 
 typedef enum status { END_OF_FILE, NULL_BUFFER, WORD } status;
 
 #define MAX_WORD_SIZE 100
 
+void print_subtree(SubNode *node)
+{
+    if(node){
+        print_subtree(node->left);
+        printf("%s\n", node->word);
+        print_subtree(node->right);
+    }
+}
 void print_tree(Node *root, int to_print)
 {
     if (root) {
         // print the left half first
-        print_tree(root->subtree_left, 1);
-        print_tree(root->left, 0);
+        print_subtree(root->sub_left);
         // print the contents of this node
-        if(to_print || root->subtree_right || root->subtree_left)
+        if(to_print || root->sub_left || root->sub_right)
             printf("%s\n", root->word);
         // print the right half next
-        print_tree(root->subtree_right, 1);
+        print_subtree(root->sub_right);
+
+        print_tree(root->left, 0);
         print_tree(root->right, 0);
+    }
+}
+
+void free_subtree(SubNode *node)
+{
+    if (node) {
+        free_subtree(node->left);
+        free_subtree(node->right);
+        free(node->word);
+        free(node);
     }
 }
 
@@ -241,22 +226,14 @@ void print_tree(Node *root, int to_print)
 void free_tree(Node *tree)
 {
     if (tree) {
-        
-        free_tree(tree->subtree_left);
-        //tree->subtree_left = NULL;
-        free_tree(tree->subtree_right);
-        //tree->subtree_right = NULL;
-        
-
         free_tree(tree->left);
-        tree->left = NULL;
         free_tree(tree->right);
-        tree->right = NULL;
-        if(tree->word)
-            free(tree->word);
-        tree->word = NULL;
-        if(tree)
-            free(tree);
+
+        free_subtree(tree->sub_left);
+        free_subtree(tree->sub_right);
+
+        free(tree->word);
+        free(tree);
     }
 }
 

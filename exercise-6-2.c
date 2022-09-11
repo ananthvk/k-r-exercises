@@ -60,7 +60,6 @@ set from the command line.*/
 #include<string.h>
 int n;
 
-typedef struct SubNode SubNode;
 typedef struct Node
 {
     char *word;
@@ -68,16 +67,9 @@ typedef struct Node
     struct Node *right;
     // struct Node *subtree_left;
     // struct Node *subtree_right;
-    SubNode *sub_left;
-    SubNode *sub_right;
+    struct Node *sub_left;
+    struct Node *sub_right;
 } Node;
-
-typedef struct SubNode
-{
-    char *word;
-    struct SubNode *left;
-    struct SubNode *right;
-} SubNode;
 
 int are_first_n_chars_identical(const char *s, const char *t, int n_chars)
 {
@@ -91,14 +83,14 @@ int are_first_n_chars_identical(const char *s, const char *t, int n_chars)
     return 1;
 }
 
-Node *add_subtree(SubNode *node, char *word)
+Node *add_subtree(struct Node *node, char *word)
 {
     int expr;
     // Adds the word to the tree and returns the node which was passed
     // or if node is null, it returns the new node.
     if(node == NULL)
     {
-        node = malloc(sizeof(SubNode));
+        node = malloc(sizeof(struct Node));
         if(!node)
         {
             printf("Error while creating subtree node ! memory error\n");
@@ -188,7 +180,7 @@ typedef enum status { END_OF_FILE, NULL_BUFFER, WORD } status;
 
 #define MAX_WORD_SIZE 100
 
-void print_subtree(SubNode *node)
+void print_subtree(struct Node *node)
 {
     if(node){
         print_subtree(node->left);
@@ -212,7 +204,7 @@ void print_tree(Node *root, int to_print)
     }
 }
 
-void free_subtree(SubNode *node)
+void free_subtree(struct Node *node)
 {
     if (node) {
         free_subtree(node->left);

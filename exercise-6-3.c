@@ -1388,7 +1388,6 @@ int main()
             root = create_tree(root, buffer, line_number);
         }
     }
-    printf("Heere\n");
     print_tree(root);
     free_tree(root);
 }

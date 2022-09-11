@@ -3,3 +3,6 @@ samples/
 **/*.tmp
 *.o
 **/*.exe
+**/*.txt
+*.txt
+.vscode/

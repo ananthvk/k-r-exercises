@@ -10,7 +10,7 @@ NCHAPTERS = 8
 NEXERCISES = 25
 
 with open('Makefile', 'a') as fil:
-    # Generates a makefile for k and r compilation
+    # Generates a makefile for k and r exercises compilation
     for i in range(1, NCHAPTERS+1):
         for j in range(1, NEXERCISES+1):
             fil.write(f'exercise-{i}-{j}: exercise-{i}-{j}.c\n')

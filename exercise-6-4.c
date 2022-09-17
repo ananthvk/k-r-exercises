@@ -179,7 +179,7 @@ void print_words_in_desc_order(Node *list_head)
             in_sentry = in_sentry->next;
         }
         // Swap
-        printf(">> %d: %s\n", max_val->count, max_val->word);
+        printf("%d: %s\n", max_val->count, max_val->word);
         tmp_count = max_val->count;
         tmp_word = max_val->word;
 
@@ -210,11 +210,13 @@ int main()
      *     node_head = node_head->next;
      * } */
     print_words_in_desc_order(node_head);
+    /*
     while(node_head)
     {
 
         printf("%d: %s\n", node_head->count, node_head->word);
         node_head = node_head->next;
     }
+    */
     tree_free(root);
 }

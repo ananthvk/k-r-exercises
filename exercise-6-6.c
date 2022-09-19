@@ -487,3 +487,7 @@ int main()
 // 1. Does not handle quoted strings/chars in define.
 // 2. Does not ignore #define and replacement in comments/strings
 // 3. This code can be organized in a much better way
+// 4. Display syntax error when the define is not correct as in the middle of lines, not having a single identifier after define, etc
+// 5. Fix the bug when define replaces spaces, such as when passing this program source file using <, all spaces are replaced by "such"
+//    due to the line #defines, such as
+//    Rectify this error

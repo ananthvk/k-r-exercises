@@ -1,6 +1,0 @@
-0. entab and detab program from exercise 1
-1. Complete exercise-5-6, i.e implement other functions using pointers - I have only implemented getline using pointers.
-2. Exercise-5-7 - This program is about sorting strings using quick sort, which I have not understood - Revisit this problem after learning quicksort.
-3. Exercise-5-11, Exercise-5-12 - Not done as I have not done the entab and detab from exercise 1
-4. Exercise 5-17. Add a field-searching capability  - Not done as i have to learn how to sort using two columns
-5. Exercise 5-18 and others, based on dcl, a.k.a c declarations, do this after learning about recursive descent parser 

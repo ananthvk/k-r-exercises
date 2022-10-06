@@ -6,6 +6,8 @@
 3. Exercise-5-11, Exercise-5-12 - Not done as I have not done the entab and detab from exercise 1
 4. Exercise 5-17. Add a field-searching capability  - Not done as i have to learn how to sort using two columns
 5. Exercise 5-18 and others, based on dcl, a.k.a c declarations, do this after learning about recursive descent parser 
+6. Exercise 5-5. Rewrite the postfix calculator of Chapter 4 to use scanf and/or sscanf to do
+the input and number conversion.
 
 Exercise 6-6
 ===============

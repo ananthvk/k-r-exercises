@@ -8,6 +8,11 @@
 5. Exercise 5-18 and others, based on dcl, a.k.a c declarations, do this after learning about recursive descent parser 
 6. Exercise 5-5. Rewrite the postfix calculator of Chapter 4 to use scanf and/or sscanf to do
 the input and number conversion.
+7. Correct exercise-7-6 as it prints each file in two parts, also refactor the code to make it more readable
+
+7. Exercise 7-7. Modify the pattern finding program of Chapter 5 to take its input from a set of
+named files or, if no files are named as arguments, from the standard input. Should the file
+name be printed when a matching line is found?
 
 Exercise 6-6
 ===============
